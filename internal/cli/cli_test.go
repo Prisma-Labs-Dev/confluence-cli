@@ -374,6 +374,75 @@ func TestPagesGetPlain(t *testing.T) {
 	}
 }
 
+func TestPagesGetPlainViewBodyConvertsToMarkdown(t *testing.T) {
+	viewHTML := `<div class="contentLayout2"><h2>Overview</h2><p>Status: <span class="status-macro">LIVE</span></p><p><a class="confluence-userlink" href="/wiki/display/~abc">John Doe</a> reviewed <a href="https://example.com/page?atlOrigin=xyz">https://example.com/page?atlOrigin=xyz</a></p></div>`
+	pageJSON := fmt.Sprintf(`{"id":"123","title":"View Body Page","spaceId":"3082551269","status":"current","body":{"view":{"representation":"view","value":%q}}}`, viewHTML)
+
+	srv := fixtureServer(t, map[string]string{
+		"/wiki/api/v2/pages/123": "!" + pageJSON,
+	})
+	defer srv.Close()
+
+	stdout, _, code := runCLI([]string{
+		"--url", srv.URL, "--email", "a@b.com", "--token", "tok",
+		"--plain", "pages", "get", "--page-id", "123", "--body-format", "view",
+	}, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("exit code = %d, want %d", code, ExitOK)
+	}
+
+	if !strings.Contains(stdout, "--- Body (view, markdown) ---") {
+		t.Fatalf("missing markdown body heading: %s", stdout)
+	}
+	if !strings.Contains(stdout, "## Overview") {
+		t.Fatalf("expected markdown heading in output: %s", stdout)
+	}
+	if !strings.Contains(stdout, "[LIVE]") {
+		t.Fatalf("expected status macro markdown in output: %s", stdout)
+	}
+	if !strings.Contains(stdout, "John Doe") {
+		t.Fatalf("expected mention text in output: %s", stdout)
+	}
+	if strings.Contains(stdout, "<h2>") {
+		t.Fatalf("expected no raw HTML heading tags in output: %s", stdout)
+	}
+	if strings.Contains(stdout, "atlOrigin=") {
+		t.Fatalf("expected Atlassian tracking query to be stripped: %s", stdout)
+	}
+}
+
+func TestPagesGetViewJSONPreservesRawHTML(t *testing.T) {
+	viewHTML := `<h2>Overview</h2><p><a href="https://example.com/page?atlOrigin=xyz">https://example.com/page?atlOrigin=xyz</a></p>`
+	pageJSON := fmt.Sprintf(`{"id":"123","title":"View Body Page","spaceId":"3082551269","status":"current","body":{"view":{"representation":"view","value":%q}}}`, viewHTML)
+
+	srv := fixtureServer(t, map[string]string{
+		"/wiki/api/v2/pages/123": "!" + pageJSON,
+	})
+	defer srv.Close()
+
+	stdout, _, code := runCLI([]string{
+		"--url", srv.URL, "--email", "a@b.com", "--token", "tok",
+		"pages", "get", "--page-id", "123", "--body-format", "view",
+	}, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("exit code = %d, want %d", code, ExitOK)
+	}
+
+	var page confluence.Page
+	if err := json.Unmarshal([]byte(stdout), &page); err != nil {
+		t.Fatalf("parse JSON: %v\noutput: %s", err, stdout)
+	}
+	if page.Body == nil || page.Body.View == nil {
+		t.Fatalf("expected body.view in response: %s", stdout)
+	}
+	if !strings.Contains(page.Body.View.Value, "<h2>Overview</h2>") {
+		t.Fatalf("expected raw HTML to be preserved in JSON output: %s", page.Body.View.Value)
+	}
+	if !strings.Contains(page.Body.View.Value, "atlOrigin=xyz") {
+		t.Fatalf("expected raw link query to be preserved in JSON output: %s", page.Body.View.Value)
+	}
+}
+
 func TestPagesTreeJSON(t *testing.T) {
 	// Use inline JSON without _links.next to avoid pagination loops
 	childrenJSON := `{"results":[{"id":"148954617101","status":"current","title":"Our Team","spaceId":"3082551269"},{"id":"148948554949","status":"current","title":"Our Meetings","spaceId":"3082551269"}],"_links":{}}`

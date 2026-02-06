@@ -40,6 +40,9 @@ func TestVersionPlain(t *testing.T) {
 func TestMissingAuth(t *testing.T) {
 	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
 	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CONFLUENCE_URL", "")
+	t.Setenv("CONFLUENCE_EMAIL", "")
+	t.Setenv("CONFLUENCE_API_TOKEN", "")
 
 	var stdout, stderr bytes.Buffer
 	code := cli.Run([]string{"spaces", "list"}, &stdout, &stderr, "1.0.0-test")

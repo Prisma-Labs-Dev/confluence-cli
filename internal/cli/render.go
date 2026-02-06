@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	confluence "github.com/Prisma-Labs-Dev/confluence-cli"
+	"github.com/Prisma-Labs-Dev/confluence-cli/internal/htmlmd"
 )
 
 func renderJSON(w io.Writer, v any) error {
@@ -49,7 +50,12 @@ func renderPage(w io.Writer, page *confluence.Page) {
 	}
 	if page.Body != nil {
 		if page.Body.View != nil {
-			fmt.Fprintf(w, "\n--- Body (view) ---\n%s\n", page.Body.View.Value)
+			body, err := htmlmd.Convert(page.Body.View.Value)
+			if err != nil {
+				fmt.Fprintf(w, "\n--- Body (view) ---\n%s\n", page.Body.View.Value)
+			} else {
+				fmt.Fprintf(w, "\n--- Body (view, markdown) ---\n%s\n", body)
+			}
 		}
 		if page.Body.Storage != nil {
 			fmt.Fprintf(w, "\n--- Body (storage) ---\n%s\n", page.Body.Storage.Value)
@@ -71,4 +77,3 @@ func renderSearchResults(w io.Writer, result *confluence.ListResult[confluence.S
 		fmt.Fprintf(w, "\nNext cursor: %s\n", result.NextCursor)
 	}
 }
-
