@@ -225,14 +225,15 @@ Errors are JSON on stderr with a non-zero exit code:
 
 ## Releasing
 
-Releases are automated via [GoReleaser](https://goreleaser.com/). Tag a version to trigger a release:
+Releases are triggered via the Release workflow in GitHub Actions:
 
 ```sh
-git tag v1.0.0
-git push origin v1.0.0
+gh workflow run release.yml -f bump=patch   # v0.1.0 → v0.2.0
+gh workflow run release.yml -f bump=minor   # v0.1.0 → v0.2.0
+gh workflow run release.yml -f bump=major   # v0.1.0 → v1.0.0
 ```
 
-This builds binaries for macOS and Linux (amd64/arm64) and updates the Homebrew tap.
+The workflow auto-tags from the latest existing tag, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.
 
 **First-time setup:** Add a `HOMEBREW_TAP_GITHUB_TOKEN` secret to the repo with a GitHub PAT that has push access to `Prisma-Labs-Dev/homebrew-tap`.
 
