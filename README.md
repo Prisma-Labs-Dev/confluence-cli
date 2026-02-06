@@ -4,6 +4,7 @@ Read-only CLI for [Confluence Cloud API](https://developer.atlassian.com/cloud/c
 
 - JSON output by default, parseable by any tool or agent
 - `--plain` flag for human-readable tables
+- `pages get --body-format view --plain` renders cleaned Markdown (not raw HTML) to reduce context size
 - Structured error messages to stderr with exit codes
 - No color by default
 - Single binary with optional local credential fallback file
@@ -95,6 +96,9 @@ confluence pages get --page-id 67890
 
 # With rendered HTML body
 confluence pages get --page-id 67890 --body-format view
+
+# In --plain mode, the view body is converted to Markdown for readability/context efficiency
+confluence --plain pages get --page-id 67890 --body-format view
 
 # With raw storage format (Confluence XML)
 confluence pages get --page-id 67890 --body-format storage
@@ -235,6 +239,20 @@ gh workflow run release.yml -f bump=major
 The workflow auto-tags from the latest existing tag, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.
 
 **First-time setup:** Add a `HOMEBREW_TAP_GITHUB_TOKEN` secret to the repo with a GitHub PAT that has push access to `Prisma-Labs-Dev/homebrew-tap`.
+
+## CI
+
+CI runs on push and pull requests to `main` and executes:
+
+```sh
+go build ./...
+go test ./... -count=1
+go vet ./...
+```
+
+## Development
+
+See [`DEVELOPMENT.md`](DEVELOPMENT.md) for local workflow, CI, release details, and Homebrew verification steps.
 
 ## License
 
