@@ -1,18 +1,34 @@
 # confluence-cli
 
-CLI for Confluence Cloud API, optimized for AI agent consumption.
+Read-only CLI for [Confluence Cloud API](https://developer.atlassian.com/cloud/confluence/rest/v2/intro/), designed for AI agent consumption.
+
+- JSON output by default, parseable by any tool or agent
+- `--plain` flag for human-readable tables
+- Structured error messages to stderr with exit codes
+- No interactive prompts, no color by default
+- Single binary, zero config files
 
 ## Installation
+
+### Homebrew (macOS / Linux)
 
 ```sh
 brew install Prisma-Labs-Dev/tap/confluence-cli
 ```
 
-Or download binaries from [Releases](https://github.com/Prisma-Labs-Dev/confluence-cli/releases).
+### Binary download
 
-## Configuration
+Download from [Releases](https://github.com/Prisma-Labs-Dev/confluence-cli/releases) and place in your `PATH`.
 
-Set environment variables:
+### From source
+
+```sh
+go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
+```
+
+## Setup
+
+The CLI needs three environment variables. Set them once in your shell profile:
 
 ```sh
 export CONFLUENCE_URL=https://your-domain.atlassian.net
@@ -20,61 +36,178 @@ export CONFLUENCE_EMAIL=you@example.com
 export CONFLUENCE_API_TOKEN=your-api-token
 ```
 
-Generate an API token at https://id.atlassian.com/manage-profile/security/api-tokens
+**Get your API token:** https://id.atlassian.com/manage-profile/security/api-tokens
 
-## Usage
-
-Output is JSON by default. Use `--plain` for human-readable tables.
-
-### List spaces
+Alternatively, pass them as flags:
 
 ```sh
+confluence --url https://your-domain.atlassian.net --email you@example.com --token your-token spaces list
+```
+
+## Commands
+
+### `confluence spaces list`
+
+List all Confluence spaces.
+
+```sh
+# JSON (default)
 confluence spaces list
+
+# Limit results
 confluence spaces list --limit 10
+
+# Paginate with cursor from previous response
+confluence spaces list --cursor "eyJpZCI6..."
+
+# Human-readable table
+confluence spaces list --plain
 ```
 
-### List pages in a space
+### `confluence pages list`
+
+List pages in a space.
 
 ```sh
+# All pages in a space
 confluence pages list --space-id 12345
-confluence pages list --space-id 12345 --sort -modified-date --limit 20
+
+# Sort by recently modified (descending)
+confluence pages list --space-id 12345 --sort -modified-date
+
+# Paginate
+confluence pages list --space-id 12345 --limit 20 --cursor "eyJpZCI6..."
 ```
 
-### Get a page
+### `confluence pages get`
+
+Get a single page by ID, optionally with body content.
 
 ```sh
+# Metadata only
 confluence pages get --page-id 67890
+
+# With rendered HTML body
+confluence pages get --page-id 67890 --body-format view
+
+# With raw storage format (Confluence XML)
 confluence pages get --page-id 67890 --body-format storage
+
+# With Atlas Doc Format (structured JSON)
+confluence pages get --page-id 67890 --body-format atlas_doc_format
 ```
 
-### Page tree (children)
+### `confluence pages tree`
+
+Show child pages as a tree.
 
 ```sh
+# Direct children only (depth 1)
 confluence pages tree --page-id 67890
+
+# Recurse 3 levels deep
 confluence pages tree --page-id 67890 --depth 3
+
+# Plain text tree view
+confluence pages tree --page-id 67890 --depth 2 --plain
 ```
 
-### Search
+Plain output renders a tree:
+
+```
+Page 67890
+├── Getting Started (id:11111)
+│   ├── Installation (id:22222)
+│   └── Configuration (id:33333)
+└── API Reference (id:44444)
+```
+
+### `confluence pages search`
+
+Search pages using [CQL (Confluence Query Language)](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/).
 
 ```sh
+# Search by space
 confluence pages search --cql "type=page AND space=MYSPACE"
-confluence pages search --cql "title ~ 'meeting notes'" --limit 5
+
+# Search by title
+confluence pages search --cql "title ~ 'meeting notes'"
+
+# Full-text search
+confluence pages search --cql "text ~ 'deployment process'"
+
+# Combine with space filter flag
+confluence pages search --cql "type=page" --space-id 12345
+
+# Limit results
+confluence pages search --cql "type=page AND space=DEV" --limit 5
 ```
 
-### Version
+### `confluence version`
 
 ```sh
 confluence version
+# {"version":"1.0.0"}
+
+confluence version --plain
+# confluence 1.0.0
+```
+
+## Global Flags
+
+| Flag | Env var | Description |
+|------|---------|-------------|
+| `--url` | `CONFLUENCE_URL` | Confluence base URL |
+| `--email` | `CONFLUENCE_EMAIL` | Atlassian account email |
+| `--token` | `CONFLUENCE_API_TOKEN` | Atlassian API token |
+| `--plain` | | Human-readable table output |
+| `--color` | | Enable color in plain output |
+| `--timeout` | | HTTP timeout (default: 30s) |
+
+## Output
+
+### JSON (default)
+
+All commands output JSON to stdout. Paginated responses include a `nextCursor` field:
+
+```json
+{
+  "results": [
+    {"id": "123", "key": "DEV", "name": "Development", "type": "global", "status": "current"}
+  ],
+  "nextCursor": "eyJpZCI6..."
+}
+```
+
+### Errors
+
+Errors are JSON on stderr with a non-zero exit code:
+
+```json
+{"error": "missing required flags: --email (or CONFLUENCE_EMAIL)", "code": "VALIDATION"}
 ```
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Runtime error |
-| 2 | Validation/usage error |
-| 3 | Authentication error |
+| Code | Meaning | Example |
+|------|---------|---------|
+| 0 | Success | Command completed |
+| 1 | Runtime error | API returned 404/500, network failure |
+| 2 | Validation error | Missing required flag, unknown command |
+| 3 | Auth error | Invalid credentials (401/403) |
+
+## Releasing
+
+Releases are automated via [GoReleaser](https://goreleaser.com/). Tag a version to trigger a release:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This builds binaries for macOS and Linux (amd64/arm64) and updates the Homebrew tap.
+
+**First-time setup:** Add a `HOMEBREW_TAP_GITHUB_TOKEN` secret to the repo with a GitHub PAT that has push access to `Prisma-Labs-Dev/homebrew-tap`.
 
 ## License
 

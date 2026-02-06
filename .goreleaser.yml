@@ -22,11 +22,14 @@ brews:
   - repository:
       owner: Prisma-Labs-Dev
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     name: confluence-cli
     homepage: https://github.com/Prisma-Labs-Dev/confluence-cli
     description: CLI for Confluence Cloud API, optimized for AI agents
     install: |
       bin.install "confluence"
+    test: |
+      system "#{bin}/confluence", "version"
 
 checksum:
   name_template: checksums.txt
