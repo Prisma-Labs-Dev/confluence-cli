@@ -25,6 +25,9 @@ type App struct {
 	Plain   bool
 	Color   bool
 	Version string
+	URL     string
+	Email   string
+	Token   string
 }
 
 type CLIError struct {
@@ -63,28 +66,44 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 		Plain:   cli.Plain,
 		Color:   cli.Color,
 		Version: version,
+		URL:     cli.URL,
+		Email:   cli.Email,
+		Token:   cli.Token,
 	}
 
-	// Only create client for commands that need it (not version)
-	if ctx.Command() != "version" {
-		if cli.URL == "" || cli.Email == "" || cli.Token == "" {
+	// Only create client for commands that need it.
+	if ctx.Command() != "version" && ctx.Command() != "auth login" {
+		creds, err := resolveCredentials(Credentials{
+			URL:   cli.URL,
+			Email: cli.Email,
+			Token: cli.Token,
+		})
+		if err != nil {
+			writeError(stderr, err.Error(), "AUTH_STORE")
+			return ExitError
+		}
+		app.URL = creds.URL
+		app.Email = creds.Email
+		app.Token = creds.Token
+
+		if creds.URL == "" || creds.Email == "" || creds.Token == "" {
 			missing := []string{}
-			if cli.URL == "" {
+			if creds.URL == "" {
 				missing = append(missing, "--url (or CONFLUENCE_URL)")
 			}
-			if cli.Email == "" {
+			if creds.Email == "" {
 				missing = append(missing, "--email (or CONFLUENCE_EMAIL)")
 			}
-			if cli.Token == "" {
+			if creds.Token == "" {
 				missing = append(missing, "--token (or CONFLUENCE_API_TOKEN)")
 			}
 			writeError(stderr, fmt.Sprintf("missing required flags: %s", strings.Join(missing, ", ")), "VALIDATION")
 			return ExitValidation
 		}
 		app.Client = confluence.NewClient(confluence.Options{
-			BaseURL: cli.URL,
-			Email:   cli.Email,
-			Token:   cli.Token,
+			BaseURL: creds.URL,
+			Email:   creds.Email,
+			Token:   creds.Token,
 			Timeout: cli.Timeout,
 		})
 	}

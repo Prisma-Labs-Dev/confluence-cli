@@ -5,8 +5,8 @@ Read-only CLI for [Confluence Cloud API](https://developer.atlassian.com/cloud/c
 - JSON output by default, parseable by any tool or agent
 - `--plain` flag for human-readable tables
 - Structured error messages to stderr with exit codes
-- No interactive prompts, no color by default
-- Single binary, zero config files
+- No color by default
+- Single binary with optional local credential fallback file
 
 ## Installation
 
@@ -28,21 +28,27 @@ go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
 
 ## Setup
 
-The CLI needs three environment variables. Set them once in your shell profile:
+Run `auth login` once to store credentials:
 
 ```sh
-export CONFLUENCE_URL=https://your-domain.atlassian.net
-export CONFLUENCE_EMAIL=you@example.com
-export CONFLUENCE_API_TOKEN=your-api-token
+confluence auth login
 ```
+
+This prompts for:
+- Confluence URL
+- Atlassian email
+- Atlassian API token
+
+Credentials are stored in macOS Keychain. If Keychain is unavailable, the CLI falls back to a local file at:
+
+```text
+~/Library/Application Support/confluence-cli/credentials.json
+```
+
+You can still pass credentials as flags or environment variables when needed.
+See `confluence auth login` examples below for non-interactive agent flows.
 
 **Get your API token:** https://id.atlassian.com/manage-profile/security/api-tokens
-
-Alternatively, pass them as flags:
-
-```sh
-confluence --url https://your-domain.atlassian.net --email you@example.com --token your-token spaces list
-```
 
 ## Commands
 
@@ -151,6 +157,27 @@ confluence version
 
 confluence version --plain
 # confluence 1.0.0
+```
+
+### `confluence auth login`
+
+Store credentials for future commands:
+
+```sh
+# interactive prompt
+confluence auth login
+
+# non-interactive
+confluence --url https://your-domain.atlassian.net --email you@example.com --token your-token auth login
+
+# non-interactive with JSON credentials from stdin (agent-friendly)
+printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","token":"your-token"}' | confluence auth login --stdin-json
+
+# non-interactive with token from stdin
+printf '%s' "$CONFLUENCE_API_TOKEN" | confluence --url https://your-domain.atlassian.net --email you@example.com auth login --token-stdin
+
+# disable prompts entirely (fail fast if anything is missing)
+confluence auth login --no-prompt
 ```
 
 ## Global Flags

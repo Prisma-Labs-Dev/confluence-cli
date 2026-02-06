@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -47,6 +48,24 @@ func runCLI(args []string, version string) (stdout, stderr string, exitCode int)
 	var outBuf, errBuf bytes.Buffer
 	code := Run(args, &outBuf, &errBuf, version)
 	return outBuf.String(), errBuf.String(), code
+}
+
+func runCLIWithStdin(args []string, stdin string, version string) (stdout, stderr string, exitCode int) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		panic(err)
+	}
+	_, _ = w.Write([]byte(stdin))
+	_ = w.Close()
+
+	oldStdin := os.Stdin
+	os.Stdin = r
+	defer func() {
+		os.Stdin = oldStdin
+		_ = r.Close()
+	}()
+
+	return runCLI(args, version)
 }
 
 // --- Version command tests ---
@@ -108,6 +127,8 @@ func TestMissingAuth(t *testing.T) {
 	t.Setenv("CONFLUENCE_URL", "")
 	t.Setenv("CONFLUENCE_EMAIL", "")
 	t.Setenv("CONFLUENCE_API_TOKEN", "")
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
 
 	_, stderr, code := runCLI([]string{"spaces", "list"}, "1.0.0")
 	if code != ExitValidation {
@@ -136,6 +157,8 @@ func TestMissingPartialAuth(t *testing.T) {
 	t.Setenv("CONFLUENCE_URL", "")
 	t.Setenv("CONFLUENCE_EMAIL", "")
 	t.Setenv("CONFLUENCE_API_TOKEN", "")
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
 
 	// Only URL provided, missing email and token
 	_, stderr, code := runCLI([]string{"--url", "https://test.atlassian.net", "spaces", "list"}, "1.0.0")
@@ -358,8 +381,8 @@ func TestPagesTreeJSON(t *testing.T) {
 
 	srv := fixtureServer(t, map[string]string{
 		"/wiki/api/v2/pages/3082848318/children":   "!" + childrenJSON,
-		"/wiki/api/v2/pages/148954617101/children":  "!" + emptyChildren,
-		"/wiki/api/v2/pages/148948554949/children":  "!" + emptyChildren,
+		"/wiki/api/v2/pages/148954617101/children": "!" + emptyChildren,
+		"/wiki/api/v2/pages/148948554949/children": "!" + emptyChildren,
 	})
 	defer srv.Close()
 
@@ -403,8 +426,8 @@ func TestPagesTreePlain(t *testing.T) {
 
 	srv := fixtureServer(t, map[string]string{
 		"/wiki/api/v2/pages/3082848318/children":   "!" + childrenJSON,
-		"/wiki/api/v2/pages/148954617101/children":  "!" + emptyChildren,
-		"/wiki/api/v2/pages/148948554949/children":  "!" + emptyChildren,
+		"/wiki/api/v2/pages/148954617101/children": "!" + emptyChildren,
+		"/wiki/api/v2/pages/148948554949/children": "!" + emptyChildren,
 	})
 	defer srv.Close()
 
@@ -577,6 +600,8 @@ func TestErrorOutputIsValidJSON(t *testing.T) {
 	t.Setenv("CONFLUENCE_URL", "")
 	t.Setenv("CONFLUENCE_EMAIL", "")
 	t.Setenv("CONFLUENCE_API_TOKEN", "")
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
 
 	_, stderr, _ := runCLI([]string{"spaces", "list"}, "1.0.0")
 
@@ -591,6 +616,8 @@ func TestErrorsGoToStderr(t *testing.T) {
 	t.Setenv("CONFLUENCE_URL", "")
 	t.Setenv("CONFLUENCE_EMAIL", "")
 	t.Setenv("CONFLUENCE_API_TOKEN", "")
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
 
 	stdout, stderr, code := runCLI([]string{"spaces", "list"}, "1.0.0")
 	if code == ExitOK {
@@ -604,5 +631,87 @@ func TestErrorsGoToStderr(t *testing.T) {
 	// stderr should have the error
 	if stderr == "" {
 		t.Error("stderr should contain error message")
+	}
+}
+
+func TestAuthLoginAndStoredCredentialsFallbackFile(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CONFLUENCE_URL", "")
+	t.Setenv("CONFLUENCE_EMAIL", "")
+	t.Setenv("CONFLUENCE_API_TOKEN", "")
+
+	srv := fixtureServer(t, map[string]string{
+		"/wiki/api/v2/spaces": "spaces_list.json",
+	})
+	defer srv.Close()
+
+	_, _, code := runCLI([]string{
+		"--url", srv.URL, "--email", "a@b.com", "--token", "tok",
+		"auth", "login",
+	}, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("auth login exit code = %d, want %d", code, ExitOK)
+	}
+
+	stdout, _, code := runCLI([]string{"spaces", "list"}, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("spaces list with stored creds exit code = %d, want %d", code, ExitOK)
+	}
+	if !json.Valid([]byte(stdout)) {
+		t.Fatalf("output is not valid JSON: %s", stdout)
+	}
+}
+
+func TestAuthLoginStdinJSONAndStoredCredentialsFallbackFile(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CONFLUENCE_URL", "")
+	t.Setenv("CONFLUENCE_EMAIL", "")
+	t.Setenv("CONFLUENCE_API_TOKEN", "")
+
+	srv := fixtureServer(t, map[string]string{
+		"/wiki/api/v2/spaces": "spaces_list.json",
+	})
+	defer srv.Close()
+
+	stdinJSON := fmt.Sprintf(`{"url":%q,"email":"a@b.com","token":"tok"}`, srv.URL)
+	_, _, code := runCLIWithStdin([]string{
+		"auth", "login", "--stdin-json",
+	}, stdinJSON, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("auth login --stdin-json exit code = %d, want %d", code, ExitOK)
+	}
+
+	stdout, _, code := runCLI([]string{"spaces", "list"}, "1.0.0")
+	if code != ExitOK {
+		t.Fatalf("spaces list with stored creds exit code = %d, want %d", code, ExitOK)
+	}
+	if !json.Valid([]byte(stdout)) {
+		t.Fatalf("output is not valid JSON: %s", stdout)
+	}
+}
+
+func TestAuthLoginNoPromptFailsFastWithoutInput(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CONFLUENCE_URL", "")
+	t.Setenv("CONFLUENCE_EMAIL", "")
+	t.Setenv("CONFLUENCE_API_TOKEN", "")
+
+	_, stderr, code := runCLI([]string{"auth", "login", "--no-prompt"}, "1.0.0")
+	if code != ExitError {
+		t.Fatalf("auth login --no-prompt exit code = %d, want %d", code, ExitError)
+	}
+
+	var errResult CLIError
+	if err := json.Unmarshal([]byte(stderr), &errResult); err != nil {
+		t.Fatalf("parse error JSON: %v\nstderr: %s", err, stderr)
+	}
+	if errResult.Code != "ERROR" {
+		t.Fatalf("error code = %q, want %q", errResult.Code, "ERROR")
+	}
+	if !strings.Contains(errResult.Message, "missing required fields") {
+		t.Fatalf("unexpected error message: %s", errResult.Message)
 	}
 }

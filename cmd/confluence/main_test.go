@@ -38,6 +38,9 @@ func TestVersionPlain(t *testing.T) {
 }
 
 func TestMissingAuth(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+
 	var stdout, stderr bytes.Buffer
 	code := cli.Run([]string{"spaces", "list"}, &stdout, &stderr, "1.0.0-test")
 	if code != cli.ExitValidation {
@@ -57,6 +60,9 @@ func TestMissingAuth(t *testing.T) {
 }
 
 func TestNoCommand(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+
 	var stdout, stderr bytes.Buffer
 	code := cli.Run([]string{}, &stdout, &stderr, "1.0.0-test")
 	if code != cli.ExitValidation {

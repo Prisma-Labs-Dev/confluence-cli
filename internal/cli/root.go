@@ -12,5 +12,6 @@ type CLI struct {
 
 	Spaces SpacesCmd  `cmd:"" help:"Manage spaces"`
 	Pages  PagesCmd   `cmd:"" help:"Manage pages"`
+	Auth   AuthCmd    `cmd:"" help:"Manage credentials"`
 	Ver    VersionCmd `cmd:"" name:"version" help:"Print version"`
 }
