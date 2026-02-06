@@ -56,7 +56,7 @@ Workflow: `.github/workflows/release.yml`
 Release workflow order:
 1. Checkout full git history/tags.
 2. Run build/test/vet gates.
-3. Compute next version from latest tag.
+3. Compute next version from the highest semantic version tag (not nearest git tag).
 4. Create and push git tag.
 5. Run GoReleaser.
 6. Update Homebrew tap formula (`Prisma-Labs-Dev/homebrew-tap`).

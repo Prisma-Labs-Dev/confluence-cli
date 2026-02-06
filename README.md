@@ -236,7 +236,7 @@ gh workflow run release.yml -f bump=minor
 gh workflow run release.yml -f bump=major
 ```
 
-The workflow auto-tags from the latest existing tag, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.
+The workflow auto-tags from the highest existing semantic version, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.
 
 **First-time setup:** Add a `HOMEBREW_TAP_GITHUB_TOKEN` secret to the repo with a GitHub PAT that has push access to `Prisma-Labs-Dev/homebrew-tap`.
 

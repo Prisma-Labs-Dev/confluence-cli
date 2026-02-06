@@ -44,10 +44,13 @@ jobs:
         env:
           BUMP: ${{ inputs.bump || 'patch' }}
         run: |
-          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          major=$(echo "$latest" | sed 's/^v//' | cut -d. -f1)
-          minor=$(echo "$latest" | sed 's/^v//' | cut -d. -f2)
-          patch=$(echo "$latest" | sed 's/^v//' | cut -d. -f3)
+          latest=$(git tag -l 'v*' | sed 's/^v//' | sort -V | tail -n1)
+          if [ -z "$latest" ]; then
+            latest="0.0.0"
+          fi
+          major=$(echo "$latest" | cut -d. -f1)
+          minor=$(echo "$latest" | cut -d. -f2)
+          patch=$(echo "$latest" | cut -d. -f3)
           case "$BUMP" in
             major) major=$((major+1)); minor=0; patch=0 ;;
             minor) minor=$((minor+1)); patch=0 ;;
