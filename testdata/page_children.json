@@ -1,0 +1,22 @@
+{
+    "results": [
+        {
+            "id": "148954617101",
+            "status": "current",
+            "title": "Our Team",
+            "spaceId": "3082551269",
+            "childPosition": 656
+        },
+        {
+            "id": "148948554949",
+            "status": "current",
+            "title": "Our Meetings",
+            "spaceId": "3082551269",
+            "childPosition": 756
+        }
+    ],
+    "_links": {
+        "next": "/wiki/api/v2/pages/3082848318/children?limit=2&cursor=eyJpZCI6IjE0ODk0ODU1NDk0OSJ9",
+        "base": "https://confluence-aholddelhaize.atlassian.net/wiki"
+    }
+}

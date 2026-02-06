@@ -1,0 +1,4 @@
+{
+    "message": "Unauthorized; check your credentials",
+    "statusCode": 401
+}

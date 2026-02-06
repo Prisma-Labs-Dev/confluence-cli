@@ -1,0 +1,35 @@
+version: 2
+
+builds:
+  - main: ./cmd/confluence
+    binary: confluence
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+brews:
+  - repository:
+      owner: Prisma-Labs-Dev
+      name: homebrew-tap
+    name: confluence-cli
+    homepage: https://github.com/Prisma-Labs-Dev/confluence-cli
+    description: CLI for Confluence Cloud API, optimized for AI agents
+    install: |
+      bin.install "confluence"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc

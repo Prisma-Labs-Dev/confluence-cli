@@ -1,0 +1,60 @@
+{
+    "results": [
+        {
+            "parentType": null,
+            "parentId": null,
+            "authorId": "600acf03bb4eb50078abe01a",
+            "lastOwnerId": null,
+            "ownerId": "600acf03bb4eb50078abe01a",
+            "createdAt": "2021-01-12T14:30:54Z",
+            "version": {
+                "number": 119,
+                "message": "",
+                "minorEdit": false,
+                "authorId": "605cf5a92f7d900070ae06a0",
+                "createdAt": "2025-10-27T08:44:55.258Z",
+                "ncsStepVersion": "239"
+            },
+            "position": 113159514,
+            "id": "3082848318",
+            "body": {},
+            "status": "current",
+            "spaceId": "3082551269",
+            "title": "BeCSEE Cloud Foundation",
+            "_links": {
+                "editui": "/pages/resumedraft.action?draftId=3082848318",
+                "webui": "/spaces/CF/overview"
+            }
+        },
+        {
+            "parentType": "page",
+            "parentId": "3082848318",
+            "authorId": "605cee9c2c761b00691a8d07",
+            "lastOwnerId": null,
+            "ownerId": "605cee9c2c761b00691a8d07",
+            "createdAt": "2021-02-24T07:58:44Z",
+            "version": {
+                "number": 7,
+                "message": "",
+                "minorEdit": false,
+                "authorId": "605cee9c2c761b00691a8d07",
+                "createdAt": "2022-11-17T13:58:59.471Z",
+                "ncsStepVersion": null
+            },
+            "position": 1064316034,
+            "id": "3090334394",
+            "body": {},
+            "status": "current",
+            "spaceId": "3082551269",
+            "title": "Legacy",
+            "_links": {
+                "editui": "/pages/resumedraft.action?draftId=3090334394",
+                "webui": "/spaces/CF/pages/3090334394/Legacy"
+            }
+        }
+    ],
+    "_links": {
+        "next": "/wiki/api/v2/pages?limit=2&space-id=3082551269&cursor=eyJpZCI6IjMwOTAzMzQzOTQifQ==",
+        "base": "https://confluence-aholddelhaize.atlassian.net/wiki"
+    }
+}

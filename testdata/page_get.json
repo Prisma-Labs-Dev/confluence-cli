@@ -1,0 +1,32 @@
+{
+    "parentType": null,
+    "parentId": null,
+    "lastOwnerId": null,
+    "ownerId": "600acf03bb4eb50078abe01a",
+    "createdAt": "2021-01-12T14:30:54Z",
+    "authorId": "600acf03bb4eb50078abe01a",
+    "position": 113159514,
+    "version": {
+        "number": 119,
+        "message": "",
+        "minorEdit": false,
+        "authorId": "605cf5a92f7d900070ae06a0",
+        "createdAt": "2025-10-27T08:44:55.258Z",
+        "ncsStepVersion": "239"
+    },
+    "status": "current",
+    "body": {
+        "storage": {
+            "representation": "storage",
+            "value": "<p>Status<strong>: </strong><ac:structured-macro ac:name=\"status\"><ac:parameter ac:name=\"title\">LIVE</ac:parameter></ac:structured-macro></p><h1>Meet the team</h1><p>Welcome to our space.</p>"
+        }
+    },
+    "spaceId": "3082551269",
+    "title": "BeCSEE Cloud Foundation",
+    "id": "3082848318",
+    "_links": {
+        "editui": "/pages/resumedraft.action?draftId=3082848318",
+        "webui": "/spaces/CF/overview",
+        "base": "https://confluence-aholddelhaize.atlassian.net/wiki"
+    }
+}

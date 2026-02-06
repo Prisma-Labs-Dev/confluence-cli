@@ -1,0 +1,42 @@
+{
+    "results": [
+        {
+            "spaceOwnerId": "8a7f808a7966cd1001796b4afbc004e7",
+            "createdAt": "2021-01-12T14:30:53Z",
+            "authorId": "600acf03bb4eb50078abe01a",
+            "homepageId": "3082848318",
+            "icon": null,
+            "description": null,
+            "status": "current",
+            "name": "BeCSEE Cloud Foundation",
+            "key": "CF",
+            "id": "3082551269",
+            "type": "global",
+            "_links": {
+                "webui": "/spaces/CF"
+            },
+            "currentActiveAlias": "CF"
+        },
+        {
+            "spaceOwnerId": "8a7f808a7966cd1001796b4afbc004e7",
+            "createdAt": "2019-05-22T14:07:54Z",
+            "authorId": "600acf03bb4eb50078abe01a",
+            "homepageId": "3211223583",
+            "icon": null,
+            "description": null,
+            "status": "current",
+            "name": "BeCSEE Architecture",
+            "key": "ARCHBCSE",
+            "id": "3209793305",
+            "type": "global",
+            "_links": {
+                "webui": "/spaces/ARCHBCSE"
+            },
+            "currentActiveAlias": "ARCHBCSE"
+        }
+    ],
+    "_links": {
+        "next": "/wiki/api/v2/spaces?limit=2&cursor=eyJpZCI6MzIwOTc5MzMwNX0=",
+        "base": "https://confluence-aholddelhaize.atlassian.net/wiki"
+    }
+}

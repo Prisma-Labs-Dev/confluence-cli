@@ -1,0 +1,77 @@
+{
+    "results": [
+        {
+            "content": {
+                "id": "8975222682",
+                "type": "page",
+                "status": "current",
+                "title": "CF2-DD-2021-07-01: Sendgrid",
+                "childTypes": {},
+                "macroRenderedOutput": {},
+                "restrictions": {},
+                "_expandable": {
+                    "container": "",
+                    "metadata": "",
+                    "space": "/rest/api/space/CF"
+                },
+                "_links": {
+                    "webui": "/spaces/CF/pages/8975222682/CF2-DD-2021-07-01+Sendgrid",
+                    "self": "https://confluence-aholddelhaize.atlassian.net/wiki/rest/api/content/8975222682"
+                }
+            },
+            "title": "CF2-DD-2021-07-01: Sendgrid",
+            "excerpt": "Identifier\nCF-DD-2021-07-01\nDecision Status\nAPPROVED",
+            "url": "/spaces/CF/pages/8975222682/CF2-DD-2021-07-01+Sendgrid",
+            "resultGlobalContainer": {
+                "title": "BeCSEE Cloud Foundation",
+                "displayUrl": "/spaces/CF"
+            },
+            "entityType": "content",
+            "lastModified": "2021-07-06T07:52:09.000Z",
+            "score": 0.0
+        },
+        {
+            "content": {
+                "id": "8968150905",
+                "type": "page",
+                "status": "current",
+                "title": "CF-DD-2021-06-30: Infoblox as DDI/IPAM solution",
+                "childTypes": {},
+                "macroRenderedOutput": {},
+                "restrictions": {},
+                "_expandable": {
+                    "container": "",
+                    "metadata": "",
+                    "space": "/rest/api/space/CF"
+                },
+                "_links": {
+                    "webui": "/spaces/CF/pages/8968150905",
+                    "self": "https://confluence-aholddelhaize.atlassian.net/wiki/rest/api/content/8968150905"
+                }
+            },
+            "title": "CF-DD-2021-06-30: Infoblox as DDI/IPAM solution",
+            "excerpt": "Identifier\nCF-DD-2021-06-29\nDecision Status\nPENDING",
+            "url": "/spaces/CF/pages/8968150905",
+            "resultGlobalContainer": {
+                "title": "BeCSEE Cloud Foundation",
+                "displayUrl": "/spaces/CF"
+            },
+            "entityType": "content",
+            "lastModified": "2021-11-04T14:03:36.000Z",
+            "score": 0.0
+        }
+    ],
+    "start": 0,
+    "limit": 2,
+    "size": 2,
+    "totalSize": 1105,
+    "cqlQuery": "type = page AND space = CF",
+    "searchDuration": 111,
+    "archivedResultCount": 0,
+    "_links": {
+        "base": "https://confluence-aholddelhaize.atlassian.net/wiki",
+        "context": "/wiki",
+        "next": "/rest/api/search?next=true&cursor=abc123&limit=2&start=2&cql=type%3Dpage+AND+space%3DCF",
+        "self": "https://confluence-aholddelhaize.atlassian.net/wiki/rest/api/search?cql=type%3Dpage+AND+space%3DCF"
+    }
+}
