@@ -75,6 +75,25 @@ func TestConvert_RemovesHighNoiseMacros(t *testing.T) {
 	}
 }
 
+func TestConvert_TableCellLineBreaksDoNotLeaveHTML(t *testing.T) {
+	input := `
+<table>
+  <thead><tr><th>Field</th><th>Details</th></tr></thead>
+  <tbody>
+    <tr><td>Example</td><td>Line one<br>Line two<br/>Line three</td></tr>
+  </tbody>
+</table>`
+
+	out, err := Convert(input)
+	if err != nil {
+		t.Fatalf("Convert() error = %v", err)
+	}
+
+	mustContain(t, out, "| Field | Details |")
+	mustContain(t, out, "Line one / Line two / Line three")
+	mustNotContain(t, out, "<br>")
+}
+
 func mustContain(t *testing.T, got, want string) {
 	t.Helper()
 	if !strings.Contains(got, want) {

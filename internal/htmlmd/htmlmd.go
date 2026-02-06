@@ -29,6 +29,10 @@ func newConverter() *md.Converter {
 
 	conv.Use(plugin.GitHubFlavored())
 	conv.Before(preprocessConfluenceHTML)
+	conv.After(func(markdown string) string {
+		// Table plugin uses "<br>" for multiline cell content; keep it plain-text friendly.
+		return strings.ReplaceAll(markdown, "<br>", " / ")
+	})
 	conv.AddRules(
 		md.Rule{
 			Filter: []string{"br"},
