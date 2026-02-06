@@ -225,12 +225,11 @@ Errors are JSON on stderr with a non-zero exit code:
 
 ## Releasing
 
-Releases are triggered via the Release workflow in GitHub Actions:
+Every push to `main` automatically creates a patch release. For minor or major bumps, trigger manually:
 
 ```sh
-gh workflow run release.yml -f bump=patch   # v0.1.0 → v0.2.0
-gh workflow run release.yml -f bump=minor   # v0.1.0 → v0.2.0
-gh workflow run release.yml -f bump=major   # v0.1.0 → v1.0.0
+gh workflow run release.yml -f bump=minor
+gh workflow run release.yml -f bump=major
 ```
 
 The workflow auto-tags from the latest existing tag, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.

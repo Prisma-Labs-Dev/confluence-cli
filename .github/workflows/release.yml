@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       bump:
@@ -8,10 +10,9 @@ on:
         required: true
         type: choice
         options:
-          - patch
           - minor
           - major
-        default: patch
+        default: minor
 
 permissions:
   contents: write
@@ -27,7 +28,7 @@ jobs:
       - name: Bump version and tag
         id: version
         env:
-          BUMP: ${{ inputs.bump }}
+          BUMP: ${{ inputs.bump || 'patch' }}
         run: |
           latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           major=$(echo "$latest" | sed 's/^v//' | cut -d. -f1)
