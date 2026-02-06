@@ -229,9 +229,17 @@ Errors are JSON on stderr with a non-zero exit code:
 
 ## Releasing
 
-Every push to `main` automatically creates a patch release. For minor or major bumps, trigger manually:
+Every push to `main` creates a release. By default this is a patch bump.
+
+To bump minor/major directly on push (without an intermediate patch), include one of these markers in the commit message:
+
+- `#minor` or `release:minor`
+- `#major` or `release:major`
+
+You can also trigger releases manually:
 
 ```sh
+gh workflow run release.yml -f bump=patch
 gh workflow run release.yml -f bump=minor
 gh workflow run release.yml -f bump=major
 ```

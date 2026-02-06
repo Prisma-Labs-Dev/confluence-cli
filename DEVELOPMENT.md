@@ -45,11 +45,15 @@ Workflow: `.github/workflows/ci.yml`
 
 Workflow: `.github/workflows/release.yml`
 
-- Auto patch release:
+- Auto release on push:
   - Triggered on every `push` to `main`
   - Uses `patch` bump by default
-- Manual minor/major:
+  - Supports commit-message bump markers:
+    - `#minor` or `release:minor`
+    - `#major` or `release:major`
+- Manual patch/minor/major:
   - Trigger via:
+    - `gh workflow run release.yml -f bump=patch`
     - `gh workflow run release.yml -f bump=minor`
     - `gh workflow run release.yml -f bump=major`
 

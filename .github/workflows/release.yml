@@ -10,9 +10,10 @@ on:
         required: true
         type: choice
         options:
+          - patch
           - minor
           - major
-        default: minor
+        default: patch
 
 permissions:
   contents: write
@@ -39,10 +40,32 @@ jobs:
           go test ./... -count=1
           go vet ./...
 
+      - name: Resolve bump type
+        id: bump
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_BUMP: ${{ inputs.bump }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            bump="$INPUT_BUMP"
+          else
+            msg=$(printf '%s' "$HEAD_COMMIT_MESSAGE" | tr '[:upper:]' '[:lower:]')
+            if echo "$msg" | grep -Eq '(^|[[:space:]])(#major|release:major|\[major\])($|[[:space:]])'; then
+              bump="major"
+            elif echo "$msg" | grep -Eq '(^|[[:space:]])(#minor|release:minor|\[minor\])($|[[:space:]])'; then
+              bump="minor"
+            else
+              bump="patch"
+            fi
+          fi
+
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
       - name: Bump version and tag
         id: version
         env:
-          BUMP: ${{ inputs.bump || 'patch' }}
+          BUMP: ${{ steps.bump.outputs.bump }}
         run: |
           latest=$(git tag -l 'v*' | sed 's/^v//' | sort -V | tail -n1)
           if [ -z "$latest" ]; then
