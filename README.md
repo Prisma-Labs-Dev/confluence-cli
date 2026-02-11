@@ -6,7 +6,6 @@ Read-only CLI for [Confluence Cloud API](https://developer.atlassian.com/cloud/c
 - `--plain` flag for human-readable tables
 - `pages get --body-format view --plain` renders cleaned Markdown (not raw HTML) to reduce context size
 - Structured error messages to stderr with exit codes
-- No color by default
 - Single binary with optional local credential fallback file
 
 ## Installation
@@ -29,16 +28,11 @@ go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
 
 ## Setup
 
-Run `auth login` once to store credentials:
+Run `auth login` once to store credentials using an explicit non-interactive path:
 
 ```sh
-confluence auth login
+printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","token":"your-token"}' | confluence auth login --stdin-json
 ```
-
-This prompts for:
-- Confluence URL
-- Atlassian email
-- Atlassian API token
 
 Credentials are stored in macOS Keychain. If Keychain is unavailable, the CLI falls back to a local file at:
 
@@ -168,9 +162,6 @@ confluence version --plain
 Store credentials for future commands:
 
 ```sh
-# interactive prompt
-confluence auth login
-
 # non-interactive
 confluence --url https://your-domain.atlassian.net --email you@example.com --token your-token auth login
 
@@ -180,6 +171,9 @@ printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","to
 # non-interactive with token from stdin
 printf '%s' "$CONFLUENCE_API_TOKEN" | confluence --url https://your-domain.atlassian.net --email you@example.com auth login --token-stdin
 
+# optional human-only prompt mode
+confluence auth login --prompt
+
 # disable prompts entirely (fail fast if anything is missing)
 confluence auth login --no-prompt
 ```
@@ -188,11 +182,10 @@ confluence auth login --no-prompt
 
 | Flag | Env var | Description |
 |------|---------|-------------|
-| `--url` | `CONFLUENCE_URL` | Confluence base URL |
+| `--url` | `CONFLUENCE_URL` | Confluence base URL (host, `/wiki`, or `/wiki/api/v2`) |
 | `--email` | `CONFLUENCE_EMAIL` | Atlassian account email |
 | `--token` | `CONFLUENCE_API_TOKEN` | Atlassian API token |
 | `--plain` | | Human-readable table output |
-| `--color` | | Enable color in plain output |
 | `--timeout` | | HTTP timeout (default: 30s) |
 
 ## Output

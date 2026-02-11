@@ -23,7 +23,6 @@ type App struct {
 	Stdout  io.Writer
 	Stderr  io.Writer
 	Plain   bool
-	Color   bool
 	Version string
 	URL     string
 	Email   string
@@ -33,6 +32,18 @@ type App struct {
 type CLIError struct {
 	Message string `json:"error"`
 	Code    string `json:"code"`
+}
+
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+func validationErrorf(format string, args ...any) error {
+	return &ValidationError{Message: fmt.Sprintf(format, args...)}
 }
 
 func writeError(w io.Writer, msg, code string) {
@@ -46,7 +57,6 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 	parser, err := kong.New(&cli,
 		kong.Name("confluence"),
 		kong.Description("CLI for Confluence Cloud API"),
-		kong.UsageOnError(),
 		kong.Writers(stdout, stderr),
 	)
 	if err != nil {
@@ -64,7 +74,6 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 		Stdout:  stdout,
 		Stderr:  stderr,
 		Plain:   cli.Plain,
-		Color:   cli.Color,
 		Version: version,
 		URL:     cli.URL,
 		Email:   cli.Email,
@@ -110,6 +119,11 @@ func Run(args []string, stdout, stderr io.Writer, version string) int {
 
 	if err := ctx.Run(app); err != nil {
 		var apiErr *confluence.APIError
+		var validationErr *ValidationError
+		if errors.As(err, &validationErr) {
+			writeError(stderr, validationErr.Error(), "VALIDATION")
+			return ExitValidation
+		}
 		if errors.As(err, &apiErr) {
 			code := "API_ERROR"
 			exitCode := ExitError

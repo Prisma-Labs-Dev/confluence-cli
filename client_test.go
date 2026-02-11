@@ -411,3 +411,63 @@ func TestClientBaseURLTrailingSlash(t *testing.T) {
 		t.Fatalf("expected 2 spaces, got %d", len(result.Results))
 	}
 }
+
+func TestClientBaseURLWithWikiPath(t *testing.T) {
+	srv := testServer(t, map[string]string{
+		"/wiki/api/v2/spaces": "spaces_list.json",
+	})
+	defer srv.Close()
+
+	client := NewClient(Options{
+		BaseURL: srv.URL + "/wiki",
+		Email:   "test@example.com",
+		Token:   "test-token",
+	})
+	result, err := client.ListSpaces(ListSpacesOptions{})
+	if err != nil {
+		t.Fatalf("ListSpaces with /wiki base path: %v", err)
+	}
+	if len(result.Results) != 2 {
+		t.Fatalf("expected 2 spaces, got %d", len(result.Results))
+	}
+}
+
+func TestClientBaseURLAlreadyV2Path(t *testing.T) {
+	srv := testServer(t, map[string]string{
+		"/wiki/api/v2/spaces": "spaces_list.json",
+	})
+	defer srv.Close()
+
+	client := NewClient(Options{
+		BaseURL: srv.URL + "/wiki/api/v2",
+		Email:   "test@example.com",
+		Token:   "test-token",
+	})
+	result, err := client.ListSpaces(ListSpacesOptions{})
+	if err != nil {
+		t.Fatalf("ListSpaces with /wiki/api/v2 base path: %v", err)
+	}
+	if len(result.Results) != 2 {
+		t.Fatalf("expected 2 spaces, got %d", len(result.Results))
+	}
+}
+
+func TestClientBaseURLFromRestAPIPath(t *testing.T) {
+	srv := testServer(t, map[string]string{
+		"/wiki/api/v2/spaces":   "spaces_list.json",
+		"/wiki/rest/api/search": "search.json",
+	})
+	defer srv.Close()
+
+	client := NewClient(Options{
+		BaseURL: srv.URL + "/wiki/rest/api",
+		Email:   "test@example.com",
+		Token:   "test-token",
+	})
+	if _, err := client.ListSpaces(ListSpacesOptions{}); err != nil {
+		t.Fatalf("ListSpaces with /wiki/rest/api base path: %v", err)
+	}
+	if _, err := client.Search(SearchOptions{CQL: "type=page", Limit: 2}); err != nil {
+		t.Fatalf("Search with /wiki/rest/api base path: %v", err)
+	}
+}

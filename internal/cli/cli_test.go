@@ -773,16 +773,16 @@ func TestAuthLoginStdinJSONFailsFastOnTTY(t *testing.T) {
 	defer func() { isTerminal = orig }()
 
 	_, stderr, code := runCLI([]string{"auth", "login", "--stdin-json"}, "1.0.0")
-	if code != ExitError {
-		t.Fatalf("auth login --stdin-json on tty exit code = %d, want %d", code, ExitError)
+	if code != ExitValidation {
+		t.Fatalf("auth login --stdin-json on tty exit code = %d, want %d", code, ExitValidation)
 	}
 
 	var errResult CLIError
 	if err := json.Unmarshal([]byte(stderr), &errResult); err != nil {
 		t.Fatalf("parse error JSON: %v\nstderr: %s", err, stderr)
 	}
-	if errResult.Code != "ERROR" {
-		t.Fatalf("error code = %q, want %q", errResult.Code, "ERROR")
+	if errResult.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResult.Code, "VALIDATION")
 	}
 	if !strings.Contains(errResult.Message, "--stdin-json requires piped stdin") {
 		t.Fatalf("unexpected error message: %s", errResult.Message)
@@ -805,16 +805,16 @@ func TestAuthLoginTokenStdinFailsFastOnTTY(t *testing.T) {
 		"--email", "a@b.com",
 		"auth", "login", "--token-stdin",
 	}, "1.0.0")
-	if code != ExitError {
-		t.Fatalf("auth login --token-stdin on tty exit code = %d, want %d", code, ExitError)
+	if code != ExitValidation {
+		t.Fatalf("auth login --token-stdin on tty exit code = %d, want %d", code, ExitValidation)
 	}
 
 	var errResult CLIError
 	if err := json.Unmarshal([]byte(stderr), &errResult); err != nil {
 		t.Fatalf("parse error JSON: %v\nstderr: %s", err, stderr)
 	}
-	if errResult.Code != "ERROR" {
-		t.Fatalf("error code = %q, want %q", errResult.Code, "ERROR")
+	if errResult.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResult.Code, "VALIDATION")
 	}
 	if !strings.Contains(errResult.Message, "--token-stdin requires piped stdin") {
 		t.Fatalf("unexpected error message: %s", errResult.Message)
@@ -829,16 +829,44 @@ func TestAuthLoginNoPromptFailsFastWithoutInput(t *testing.T) {
 	t.Setenv("CONFLUENCE_API_TOKEN", "")
 
 	_, stderr, code := runCLI([]string{"auth", "login", "--no-prompt"}, "1.0.0")
-	if code != ExitError {
-		t.Fatalf("auth login --no-prompt exit code = %d, want %d", code, ExitError)
+	if code != ExitValidation {
+		t.Fatalf("auth login --no-prompt exit code = %d, want %d", code, ExitValidation)
 	}
 
 	var errResult CLIError
 	if err := json.Unmarshal([]byte(stderr), &errResult); err != nil {
 		t.Fatalf("parse error JSON: %v\nstderr: %s", err, stderr)
 	}
-	if errResult.Code != "ERROR" {
-		t.Fatalf("error code = %q, want %q", errResult.Code, "ERROR")
+	if errResult.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResult.Code, "VALIDATION")
+	}
+	if !strings.Contains(errResult.Message, "missing required fields") {
+		t.Fatalf("unexpected error message: %s", errResult.Message)
+	}
+}
+
+func TestAuthLoginDefaultFailsFastWithoutPromptOnTTY(t *testing.T) {
+	t.Setenv("CONFLUENCE_DISABLE_KEYCHAIN", "1")
+	t.Setenv("CONFLUENCE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CONFLUENCE_URL", "")
+	t.Setenv("CONFLUENCE_EMAIL", "")
+	t.Setenv("CONFLUENCE_API_TOKEN", "")
+
+	orig := isTerminal
+	isTerminal = func(int) bool { return true }
+	defer func() { isTerminal = orig }()
+
+	_, stderr, code := runCLI([]string{"auth", "login"}, "1.0.0")
+	if code != ExitValidation {
+		t.Fatalf("auth login default tty exit code = %d, want %d", code, ExitValidation)
+	}
+
+	var errResult CLIError
+	if err := json.Unmarshal([]byte(stderr), &errResult); err != nil {
+		t.Fatalf("parse error JSON: %v\nstderr: %s", err, stderr)
+	}
+	if errResult.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResult.Code, "VALIDATION")
 	}
 	if !strings.Contains(errResult.Message, "missing required fields") {
 		t.Fatalf("unexpected error message: %s", errResult.Message)

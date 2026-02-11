@@ -21,6 +21,7 @@ type AuthCmd struct {
 type AuthLoginCmd struct {
 	StdinJSON  bool `name:"stdin-json" help:"Read credentials JSON from stdin (url,email,token)"`
 	TokenStdin bool `name:"token-stdin" help:"Read token from stdin"`
+	Prompt     bool `name:"prompt" help:"Allow interactive prompts for missing fields (human use)" default:"false"`
 	NoPrompt   bool `name:"no-prompt" help:"Do not prompt for missing fields; fail instead" default:"false"`
 }
 
@@ -34,11 +35,11 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 
 	if cmd.StdinJSON {
 		if stdinIsTerminal {
-			return fmt.Errorf("--stdin-json requires piped stdin; refusing terminal input")
+			return validationErrorf("--stdin-json requires piped stdin; refusing terminal input")
 		}
 		stdinCreds, err := readCredentialsJSON(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("read stdin credentials: %w", err)
+			return validationErrorf("read stdin credentials: %v", err)
 		}
 		if creds.URL == "" {
 			creds.URL = stdinCreds.URL
@@ -52,34 +53,34 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 	}
 	if cmd.TokenStdin && creds.Token == "" {
 		if stdinIsTerminal {
-			return fmt.Errorf("--token-stdin requires piped stdin; refusing terminal input")
+			return validationErrorf("--token-stdin requires piped stdin; refusing terminal input")
 		}
 		token, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return fmt.Errorf("read token from stdin: %w", err)
+			return validationErrorf("read token from stdin: %v", err)
 		}
 		creds.Token = strings.TrimSpace(string(token))
 	}
 
-	interactive := stdinIsTerminal && !cmd.NoPrompt
+	interactive := stdinIsTerminal && cmd.Prompt && !cmd.NoPrompt
 
 	var err error
 	if creds.URL == "" && interactive {
 		creds.URL, err = promptLine("Confluence URL: ")
 		if err != nil {
-			return fmt.Errorf("read url: %w", err)
+			return validationErrorf("read url: %v", err)
 		}
 	}
 	if creds.Email == "" && interactive {
 		creds.Email, err = promptLine("Atlassian email: ")
 		if err != nil {
-			return fmt.Errorf("read email: %w", err)
+			return validationErrorf("read email: %v", err)
 		}
 	}
 	if creds.Token == "" && interactive {
 		creds.Token, err = promptSecret("Atlassian API token: ")
 		if err != nil {
-			return fmt.Errorf("read token: %w", err)
+			return validationErrorf("read token: %v", err)
 		}
 	}
 
@@ -87,7 +88,7 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 	creds.Email = strings.TrimSpace(creds.Email)
 	creds.Token = strings.TrimSpace(creds.Token)
 	if creds.URL == "" || creds.Email == "" || creds.Token == "" {
-		return fmt.Errorf("missing required fields: --url, --email, --token (or use --stdin-json / --token-stdin)")
+		return validationErrorf("missing required fields: --url, --email, --token (or use --stdin-json / --token-stdin)")
 	}
 
 	location, err := saveStoredCredentials(creds)

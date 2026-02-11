@@ -25,17 +25,31 @@ type Options struct {
 	Timeout    time.Duration
 }
 
+func normalizeBaseURL(baseURL string) string {
+	baseURL = strings.TrimSpace(strings.TrimRight(baseURL, "/"))
+	switch {
+	case strings.HasSuffix(baseURL, "/wiki/api/v2"):
+		return baseURL
+	case strings.HasSuffix(baseURL, "/wiki/rest/api"):
+		return strings.TrimSuffix(baseURL, "/wiki/rest/api") + "/wiki/api/v2"
+	case strings.HasSuffix(baseURL, "/wiki"):
+		return baseURL + "/api/v2"
+	default:
+		return baseURL + "/wiki/api/v2"
+	}
+}
+
 func NewClient(opts Options) *Client {
 	httpClient := opts.HTTPClient
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: opts.Timeout}
 	}
 
-	baseURL := strings.TrimRight(opts.BaseURL, "/")
+	baseURL := normalizeBaseURL(opts.BaseURL)
 	auth := base64.StdEncoding.EncodeToString([]byte(opts.Email + ":" + opts.Token))
 
 	return &Client{
-		baseURL:    baseURL + "/wiki/api/v2",
+		baseURL:    baseURL,
 		authHeader: "Basic " + auth,
 		httpClient: httpClient,
 	}

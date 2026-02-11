@@ -130,11 +130,37 @@ func TestAuthLoginNoPrompt_Integration(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(stderr)), &errResp); err != nil {
 		t.Fatalf("stderr is not valid error JSON: %v\nstderr=%s", err, stderr)
 	}
-	if errResp.Code != "ERROR" {
-		t.Fatalf("error code = %q, want %q", errResp.Code, "ERROR")
+	if errResp.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResp.Code, "VALIDATION")
 	}
 	if !strings.Contains(errResp.Error, "missing required fields") {
 		t.Fatalf("unexpected error message: %s", errResp.Error)
+	}
+}
+
+func TestGlobalHelpDoesNotExposeColorFlag_Integration(t *testing.T) {
+	tmp := t.TempDir()
+	binPath := buildBinary(t, tmp)
+
+	stdout, stderr, err := runBinary(binPath, []string{"--help"}, "", envForIntegration(filepath.Join(tmp, "config"))...)
+	if err != nil {
+		t.Fatalf("help failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+	}
+	if strings.Contains(stdout, "--color") {
+		t.Fatalf("help should not expose --color: %s", stdout)
+	}
+}
+
+func TestAuthLoginHelpIncludesPromptFlag_Integration(t *testing.T) {
+	tmp := t.TempDir()
+	binPath := buildBinary(t, tmp)
+
+	stdout, stderr, err := runBinary(binPath, []string{"auth", "login", "--help"}, "", envForIntegration(filepath.Join(tmp, "config"))...)
+	if err != nil {
+		t.Fatalf("auth login help failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "--prompt") {
+		t.Fatalf("auth login help should include --prompt: %s", stdout)
 	}
 }
 
