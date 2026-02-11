@@ -262,6 +262,14 @@ go vet ./...
 
 See [`DEVELOPMENT.md`](DEVELOPMENT.md) for local workflow, CI, release details, and Homebrew verification steps.
 
+## Work Tracking
+
+Current agent work packets and history live under:
+
+- `docs/work/active/`
+- `docs/work/archive/`
+- `docs/work/INDEX.md`
+
 ## License
 
 MIT
