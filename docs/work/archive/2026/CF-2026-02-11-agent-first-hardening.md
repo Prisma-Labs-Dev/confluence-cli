@@ -14,10 +14,10 @@ Close agent-first reliability gaps found in review: non-interactive safety, vali
 | ID | Severity | Problem | Status | Result | Verification | Link | Notes |
 |---|---|---|---|---|---|---|---|
 | F-001 | high | `auth login --stdin-json` and `--token-stdin` can block indefinitely in PTY runs with no piped stdin | done | pass | `go test ./...` (includes `TestAuthLoginStdinJSONFailsFastOnTTY`, `TestAuthLoginTokenStdinFailsFastOnTTY`) | beb6c98 | now fails fast with explicit error |
-| F-002 | high | auth input validation currently returns generic `ERROR`/exit 1 instead of `VALIDATION`/exit 2 | done | pass | `go test ./...` (includes `TestAuthLoginNoPromptFailsFastWithoutInput` + integration no-prompt test) | pending | command validation now maps to `VALIDATION`/exit 2 |
-| F-003 | medium | base URL normalization can produce `/wiki/wiki/api/v2` when input already contains `/wiki` | done | pass | `go test ./...` (includes `TestClientBaseURLWithWikiPath`, `TestClientBaseURLAlreadyV2Path`, `TestClientBaseURLFromRestAPIPath`) | pending | base URL normalization added in client constructor |
-| F-004 | medium | interactive auth is still default behavior on terminal sessions | done | pass | `go test ./...` (includes `TestAuthLoginDefaultFailsFastWithoutPromptOnTTY`) + manual `go run ./cmd/confluence auth login` in TTY | pending | default is now non-interactive; `--prompt` required for prompts |
-| F-005 | low | `--color` flag is exposed but unused by renderers | done | pass | help output check + README/global flag cleanup | pending | removed unused flag and dead state |
+| F-002 | high | auth input validation currently returns generic `ERROR`/exit 1 instead of `VALIDATION`/exit 2 | done | pass | `go test ./...` (includes `TestAuthLoginNoPromptFailsFastWithoutInput` + integration no-prompt test) | af50aa6 | command validation now maps to `VALIDATION`/exit 2 |
+| F-003 | medium | base URL normalization can produce `/wiki/wiki/api/v2` when input already contains `/wiki` | done | pass | `go test ./...` (includes `TestClientBaseURLWithWikiPath`, `TestClientBaseURLAlreadyV2Path`, `TestClientBaseURLFromRestAPIPath`) | af50aa6 | base URL normalization added in client constructor |
+| F-004 | medium | interactive auth is still default behavior on terminal sessions | done | pass | `go test ./...` (includes `TestAuthLoginDefaultFailsFastWithoutPromptOnTTY`) + manual `go run ./cmd/confluence auth login` in TTY | af50aa6 | default is now non-interactive; `--prompt` required for prompts |
+| F-005 | low | `--color` flag is exposed but unused by renderers | done | pass | help output check + README/global flag cleanup | af50aa6 | removed unused flag and dead state |
 
 Status values:
 
