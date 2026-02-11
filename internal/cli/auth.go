@@ -12,6 +12,8 @@ import (
 	"golang.org/x/term"
 )
 
+var isTerminal = term.IsTerminal
+
 type AuthCmd struct {
 	Login AuthLoginCmd `cmd:"" help:"Store credentials securely"`
 }
@@ -28,8 +30,12 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 		Email: strings.TrimSpace(app.Email),
 		Token: strings.TrimSpace(app.Token),
 	}
+	stdinIsTerminal := isTerminal(int(os.Stdin.Fd()))
 
 	if cmd.StdinJSON {
+		if stdinIsTerminal {
+			return fmt.Errorf("--stdin-json requires piped stdin; refusing terminal input")
+		}
 		stdinCreds, err := readCredentialsJSON(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("read stdin credentials: %w", err)
@@ -45,6 +51,9 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 		}
 	}
 	if cmd.TokenStdin && creds.Token == "" {
+		if stdinIsTerminal {
+			return fmt.Errorf("--token-stdin requires piped stdin; refusing terminal input")
+		}
 		token, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return fmt.Errorf("read token from stdin: %w", err)
@@ -52,7 +61,7 @@ func (cmd *AuthLoginCmd) Run(app *App) error {
 		creds.Token = strings.TrimSpace(string(token))
 	}
 
-	interactive := term.IsTerminal(int(os.Stdin.Fd())) && !cmd.NoPrompt
+	interactive := stdinIsTerminal && !cmd.NoPrompt
 
 	var err error
 	if creds.URL == "" && interactive {

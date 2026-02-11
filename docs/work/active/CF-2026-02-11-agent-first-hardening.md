@@ -13,7 +13,7 @@ Close agent-first reliability gaps found in review: non-interactive safety, vali
 
 | ID | Severity | Problem | Status | Result | Verification | Link | Notes |
 |---|---|---|---|---|---|---|---|
-| F-001 | high | `auth login --stdin-json` and `--token-stdin` can block indefinitely in PTY runs with no piped stdin | todo | fail | reproduce with PTY run + no stdin | - | confirmed in manual run |
+| F-001 | high | `auth login --stdin-json` and `--token-stdin` can block indefinitely in PTY runs with no piped stdin | done | pass | `go test ./...` (includes `TestAuthLoginStdinJSONFailsFastOnTTY`, `TestAuthLoginTokenStdinFailsFastOnTTY`) | pending | now fails fast with explicit error |
 | F-002 | high | auth input validation currently returns generic `ERROR`/exit 1 instead of `VALIDATION`/exit 2 | todo | fail | CLI test for missing fields on `auth login --no-prompt` | - | currently coded as generic error |
 | F-003 | medium | base URL normalization can produce `/wiki/wiki/api/v2` when input already contains `/wiki` | todo | fail | unit test for base URL variants | - | normalize URL path before API suffix |
 | F-004 | medium | interactive auth is still default behavior on terminal sessions | todo | fail | command behavior test on TTY defaults | - | should default fail-fast for agent mode |
@@ -37,7 +37,7 @@ Result values:
 
 | Check | Status |
 |---|---|
-| Non-interactive auth flows cannot hang | fail |
+| Non-interactive auth flows cannot hang | pass |
 | Validation/auth/runtime exit taxonomy is explicit and tested | fail |
 | URL normalization handles `/wiki` and base host forms | fail |
 | Flags/docs align with implementation | fail |
