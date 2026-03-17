@@ -10,8 +10,10 @@ import (
 
 type PageSearchOptions struct {
 	Query     string
+	CQL       string
 	TitleOnly bool
 	SpaceID   string
+	SpaceKey  string
 	Limit     int
 	Cursor    string
 }
@@ -78,9 +80,29 @@ func (c *Client) SearchPages(opts PageSearchOptions) (*ListResult[SearchResult],
 }
 
 func buildPageSearchCQL(opts PageSearchOptions) (string, error) {
+	rawCQL := strings.TrimSpace(opts.CQL)
 	query := strings.TrimSpace(opts.Query)
+	spaceID := strings.TrimSpace(opts.SpaceID)
+	spaceKey := strings.TrimSpace(opts.SpaceKey)
+
+	if rawCQL != "" {
+		if query != "" {
+			return "", fmt.Errorf("provide exactly one of search query or cql")
+		}
+		if opts.TitleOnly {
+			return "", fmt.Errorf("title-only cannot be combined with raw cql")
+		}
+		if spaceID != "" || spaceKey != "" {
+			return "", fmt.Errorf("space-id and space-key cannot be combined with raw cql")
+		}
+		return rawCQL, nil
+	}
+
 	if query == "" {
-		return "", fmt.Errorf("search query is required")
+		return "", fmt.Errorf("search query or cql is required")
+	}
+	if spaceID != "" && spaceKey != "" {
+		return "", fmt.Errorf("space-id and space-key are mutually exclusive")
 	}
 
 	field := "text"
@@ -89,8 +111,11 @@ func buildPageSearchCQL(opts PageSearchOptions) (string, error) {
 	}
 
 	cql := fmt.Sprintf("type=page AND %s ~ \"%s\"", field, escapeCQL(query))
-	if strings.TrimSpace(opts.SpaceID) != "" {
-		cql += fmt.Sprintf(" AND space.id=%s", strings.TrimSpace(opts.SpaceID))
+	if spaceID != "" {
+		cql += fmt.Sprintf(" AND space.id=%s", spaceID)
+	}
+	if spaceKey != "" {
+		cql += fmt.Sprintf(" AND space=\"%s\"", escapeCQL(spaceKey))
 	}
 	return cql, nil
 }

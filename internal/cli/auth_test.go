@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 )
 
@@ -11,6 +12,24 @@ func runCLIForTest(t *testing.T, args []string, stdinIsTTY bool) (stdout, stderr
 	oldTerminal := isTerminal
 	isTerminal = func(int) bool { return stdinIsTTY }
 	defer func() { isTerminal = oldTerminal }()
+
+	envKeys := []string{"CONFLUENCE_URL", "CONFLUENCE_EMAIL", "CONFLUENCE_API_TOKEN"}
+	oldEnv := map[string]string{}
+	for _, key := range envKeys {
+		oldEnv[key] = os.Getenv(key)
+		if err := os.Unsetenv(key); err != nil {
+			t.Fatalf("unset %s: %v", key, err)
+		}
+	}
+	defer func() {
+		for _, key := range envKeys {
+			if oldEnv[key] == "" {
+				_ = os.Unsetenv(key)
+				continue
+			}
+			_ = os.Setenv(key, oldEnv[key])
+		}
+	}()
 
 	var outBuf, errBuf bytes.Buffer
 	code := Run(args, &outBuf, &errBuf, "test-version")

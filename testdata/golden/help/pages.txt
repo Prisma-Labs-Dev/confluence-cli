@@ -13,6 +13,6 @@ Commands:
     Traverse a bounded page tree with per-level limits.
 
   search [flags]
-    Search pages with safe query inputs.
+    Search pages with safe query inputs or raw CQL.
 
 Run "confluence pages <command> --help" for the live contract.

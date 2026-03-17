@@ -437,6 +437,91 @@ func TestPagesSearchJSONContract_Integration(t *testing.T) {
 	}
 }
 
+func TestPagesSearchRawCQLContract_Integration(t *testing.T) {
+	srv := newBinaryTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/wiki/rest/api/search" {
+			t.Errorf("path = %q, want %q", r.URL.Path, "/wiki/rest/api/search")
+			http.Error(w, "bad path", http.StatusBadRequest)
+			return
+		}
+		q := r.URL.Query()
+		if got := q.Get("cql"); got != `space = "SC" AND title ~ "slotting"` {
+			t.Errorf("cql = %q", got)
+			http.Error(w, "bad cql", http.StatusBadRequest)
+			return
+		}
+		writeFixtureResponse(t, w, "search.json")
+	})
+	defer srv.Close()
+
+	tmp := t.TempDir()
+	binPath := buildBinary(t, tmp)
+
+	stdout, stderr, err := runBinary(binPath, []string{
+		"--url", srv.URL, "--email", "a@b.com", "--token", "tok",
+		"pages", "search", "--cql", `space = "SC" AND title ~ "slotting"`, "--limit", "1",
+	}, "", envForIntegration(filepath.Join(tmp, "config"))...)
+	if err != nil {
+		t.Fatalf("pages search raw cql failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("expected empty stderr, got %s", stderr)
+	}
+
+	var result struct {
+		Results []struct {
+			ID string `json:"id"`
+		} `json:"results"`
+		Page struct {
+			Limit int `json:"limit"`
+		} `json:"page"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("pages search raw cql output not valid JSON: %v\nstdout=%s", err, stdout)
+	}
+	if len(result.Results) == 0 {
+		t.Fatal("expected at least one search result")
+	}
+	if result.Page.Limit != 1 {
+		t.Fatalf("page.limit = %d, want %d", result.Page.Limit, 1)
+	}
+}
+
+func TestPagesSearchValidationError_Integration(t *testing.T) {
+	tmp := t.TempDir()
+	binPath := buildBinary(t, tmp)
+
+	stdout, stderr, exitCode, err := runBinaryWithExitCode(binPath, []string{
+		"--url", "https://example.atlassian.net", "--email", "a@b.com", "--token", "tok",
+		"pages", "search", "--query", "slotting", "--cql", `space = "SC"`,
+	}, "", envForIntegration(filepath.Join(tmp, "config"))...)
+	if err == nil {
+		t.Fatalf("expected pages search validation failure\nstdout=%s\nstderr=%s", stdout, stderr)
+	}
+	if exitCode != 2 {
+		t.Fatalf("exit code = %d, want %d", exitCode, 2)
+	}
+	if stdout != "" {
+		t.Fatalf("expected empty stdout on error, got %q", stdout)
+	}
+
+	var result struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(stderr)), &result); err != nil {
+		t.Fatalf("stderr is not valid JSON: %v\nstderr=%s", err, stderr)
+	}
+	if result.Error.Code != "VALIDATION" {
+		t.Fatalf("code = %q, want %q", result.Error.Code, "VALIDATION")
+	}
+	if !strings.Contains(result.Error.Message, "exactly one of --query or --cql") {
+		t.Fatalf("unexpected error message: %q", result.Error.Message)
+	}
+}
+
 func TestPagesTreeContracts_Integration(t *testing.T) {
 	srv := newBinaryTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/wiki/api/v2/pages/root/children" {

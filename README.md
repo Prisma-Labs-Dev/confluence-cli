@@ -29,14 +29,18 @@ go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
 
 ### Local repository checkout
 
-This is the developer path, not the recommended end-user install path:
+This is the developer dogfooding path. To avoid drift between the repository and the `confluence` binary on your `PATH`, install the local build into `~/.local/bin`, which is expected to come before Homebrew on this machine:
 
 ```sh
 git clone https://github.com/Prisma-Labs-Dev/confluence-cli.git
 cd confluence-cli
-make build
-./bin/confluence version
+make install-local
+make verify-local
+which confluence
+confluence version
 ```
+
+This builds the local binary to `/Users/vabole/.local/bin/confluence`.
 
 ## Upgrade
 
@@ -67,15 +71,17 @@ confluence version
 
 ### Local repository checkout
 
-This is a developer workflow rather than an end-user upgrade path:
+This is the developer dogfooding upgrade path:
 
 ```sh
 git pull --ff-only
-make build
-./bin/confluence version
+make install-local
+make verify-local
+which confluence
+confluence version
 ```
 
-If you want end users to receive updates cleanly, prefer Homebrew or GitHub Releases over local source checkouts.
+If you want end users to receive updates cleanly, prefer Homebrew or GitHub Releases over local source checkouts. For active repo development, `make install-local` is the preferred way to keep the live binary aligned with the checkout.
 
 ## Authentication
 
@@ -233,10 +239,11 @@ confluence --format plain pages tree --page-id 67890
 ```sh
 confluence pages search --query "deployment"
 confluence pages search --query "meeting notes" --title-only
-confluence pages search --query "runbook" --space-id 12345
+confluence pages search --query "runbook" --space-key TNLTA
+confluence pages search --cql 'space = "SC" AND title ~ "slotting"'
 ```
 
-Search uses the current supported Confluence Cloud REST v1 search endpoint internally because REST v2 does not yet provide equivalent CQL search.
+Search uses the current supported Confluence Cloud REST v1 search endpoint internally because REST v2 does not yet provide equivalent CQL search. Use `--query` for safer common cases and `--cql` for advanced research queries that need exact Confluence search behavior.
 
 ## Development and validation
 
@@ -244,6 +251,8 @@ Search uses the current supported Confluence Cloud REST v1 search endpoint inter
 make build
 make test
 make lint
+make install-local
+make verify-local
 ```
 
 Optional live golden validation against a real Confluence workspace:

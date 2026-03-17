@@ -32,8 +32,8 @@ Commands:
   pages tree --page-id=STRING [flags]
     Traverse a bounded page tree with per-level limits.
 
-  pages search --query=STRING [flags]
-    Search pages with safe query inputs.
+  pages search --query=STRING|--cql=STRING [flags]
+    Search pages with safe query inputs or raw CQL.
 
   auth login [flags]
     Store credentials for later non-interactive use.
