@@ -17,11 +17,65 @@ Agent-first CLI for compact, read-oriented access to Confluence Cloud.
 brew install Prisma-Labs-Dev/tap/confluence-cli
 ```
 
+### Release binary
+
+Download the latest release asset from GitHub Releases and place `confluence` on your `PATH`.
+
 ### From source
 
 ```sh
 go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
 ```
+
+### Local repository checkout
+
+This is the developer path, not the recommended end-user install path:
+
+```sh
+git clone https://github.com/Prisma-Labs-Dev/confluence-cli.git
+cd confluence-cli
+make build
+./bin/confluence version
+```
+
+## Upgrade
+
+Use the same channel you installed from.
+
+### Homebrew
+
+```sh
+brew update
+brew upgrade Prisma-Labs-Dev/tap/confluence-cli
+confluence version
+```
+
+### Release binary
+
+Download the latest release asset and replace the existing `confluence` binary on your `PATH`, then verify:
+
+```sh
+confluence version
+```
+
+### Go install
+
+```sh
+go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
+confluence version
+```
+
+### Local repository checkout
+
+This is a developer workflow rather than an end-user upgrade path:
+
+```sh
+git pull --ff-only
+make build
+./bin/confluence version
+```
+
+If you want end users to receive updates cleanly, prefer Homebrew or GitHub Releases over local source checkouts.
 
 ## Authentication
 

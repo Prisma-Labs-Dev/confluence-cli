@@ -22,6 +22,15 @@ make test
 make lint
 ```
 
+## Local install and update model
+
+This repository supports two different update stories:
+
+- **end-user update path:** Homebrew, GitHub Releases, or `go install ...@latest`
+- **developer local checkout path:** `git pull --ff-only` + `make build`
+
+If you are editing the repo itself, treat the checkout flow as a developer workflow, not as the primary end-user install/upgrade contract.
+
 Optional live golden validation against a real workspace:
 
 ```sh
@@ -103,6 +112,41 @@ brew info Prisma-Labs-Dev/tap/confluence-cli
 brew update
 brew upgrade Prisma-Labs-Dev/tap/confluence-cli
 confluence version
+```
+
+## End-user upgrade paths
+
+Document and preserve a clean end-user upgrade story:
+
+### Homebrew
+
+```sh
+brew update
+brew upgrade Prisma-Labs-Dev/tap/confluence-cli
+confluence version
+```
+
+### GitHub Releases
+
+Replace the installed binary with the latest release asset and verify:
+
+```sh
+confluence version
+```
+
+### `go install`
+
+```sh
+go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
+confluence version
+```
+
+### Local developer checkout
+
+```sh
+git pull --ff-only
+make build
+./bin/confluence version
 ```
 
 ## Agent contributor notes
