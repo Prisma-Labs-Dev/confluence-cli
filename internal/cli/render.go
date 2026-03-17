@@ -4,76 +4,114 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"text/tabwriter"
 
-	confluence "github.com/Prisma-Labs-Dev/confluence-cli"
 	"github.com/Prisma-Labs-Dev/confluence-cli/internal/htmlmd"
 )
 
 func renderJSON(w io.Writer, v any) error {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	return enc.Encode(v)
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(v)
 }
 
-func renderSpaces(w io.Writer, result *confluence.ListResult[confluence.Space]) {
+func renderSpacesPlain(w io.Writer, results []SpaceSummary, nextCursor string) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tKEY\tNAME\tTYPE\tSTATUS")
-	for _, s := range result.Results {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", s.ID, s.Key, s.Name, s.Type, s.Status)
+	discardWrite(fmt.Fprintln(tw, "ID\tKEY\tNAME\tTYPE\tSTATUS"))
+	for _, result := range results {
+		discardWrite(fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", result.ID, result.Key, result.Name, result.Type, result.Status))
 	}
-	tw.Flush()
-	if result.NextCursor != "" {
-		fmt.Fprintf(w, "\nNext cursor: %s\n", result.NextCursor)
+	_ = tw.Flush()
+	if nextCursor != "" {
+		discardWrite(fmt.Fprintf(w, "\nNext cursor: %s\n", nextCursor))
 	}
 }
 
-func renderPages(w io.Writer, result *confluence.ListResult[confluence.Page]) {
+func renderPagesPlain(w io.Writer, results []PageSummary, nextCursor string) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tTITLE\tSTATUS\tSPACE ID")
-	for _, p := range result.Results {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", p.ID, p.Title, p.Status, p.SpaceID)
+	discardWrite(fmt.Fprintln(tw, "ID\tTITLE\tSTATUS\tSPACE ID\tVERSION"))
+	for _, result := range results {
+		discardWrite(fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\n", result.ID, result.Title, result.Status, result.SpaceID, result.VersionNumber))
 	}
-	tw.Flush()
-	if result.NextCursor != "" {
-		fmt.Fprintf(w, "\nNext cursor: %s\n", result.NextCursor)
+	_ = tw.Flush()
+	if nextCursor != "" {
+		discardWrite(fmt.Fprintf(w, "\nNext cursor: %s\n", nextCursor))
 	}
 }
 
-func renderPage(w io.Writer, page *confluence.Page) {
-	fmt.Fprintf(w, "ID:      %s\n", page.ID)
-	fmt.Fprintf(w, "Title:   %s\n", page.Title)
-	fmt.Fprintf(w, "Space:   %s\n", page.SpaceID)
-	fmt.Fprintf(w, "Status:  %s\n", page.Status)
+func renderPagePlain(w io.Writer, page PageDetail) {
+	discardWrite(fmt.Fprintf(w, "ID: %s\n", page.ID))
+	discardWrite(fmt.Fprintf(w, "Title: %s\n", page.Title))
+	discardWrite(fmt.Fprintf(w, "Space ID: %s\n", page.SpaceID))
+	discardWrite(fmt.Fprintf(w, "Status: %s\n", page.Status))
+	if page.ParentID != "" {
+		discardWrite(fmt.Fprintf(w, "Parent ID: %s\n", page.ParentID))
+	}
 	if page.Version != nil {
-		fmt.Fprintf(w, "Version: %d\n", page.Version.Number)
+		discardWrite(fmt.Fprintf(w, "Version: %d\n", page.Version.Number))
 	}
-	if page.Body != nil {
-		if page.Body.View != nil {
-			body, err := htmlmd.Convert(page.Body.View.Value)
-			if err != nil {
-				fmt.Fprintf(w, "\n--- Body (view) ---\n%s\n", page.Body.View.Value)
-			} else {
-				fmt.Fprintf(w, "\n--- Body (view, markdown) ---\n%s\n", body)
-			}
+	if page.Body == nil {
+		return
+	}
+
+	discardWrite(fmt.Fprintf(w, "\nBody (%s):\n", page.Body.Format))
+	switch page.Body.Format {
+	case "view":
+		markdown, err := htmlmd.Convert(page.Body.Value)
+		if err != nil {
+			discardWrite(fmt.Fprintln(w, page.Body.Value))
+			return
 		}
-		if page.Body.Storage != nil {
-			fmt.Fprintf(w, "\n--- Body (storage) ---\n%s\n", page.Body.Storage.Value)
-		}
-		if page.Body.AtlasDocFormat != nil {
-			fmt.Fprintf(w, "\n--- Body (atlas_doc_format) ---\n%s\n", page.Body.AtlasDocFormat.Value)
-		}
+		discardWrite(fmt.Fprintln(w, strings.TrimSpace(markdown)))
+	default:
+		discardWrite(fmt.Fprintln(w, page.Body.Value))
 	}
 }
 
-func renderSearchResults(w io.Writer, result *confluence.ListResult[confluence.SearchResult]) {
+func renderSearchPlain(w io.Writer, results []SearchSummary, nextCursor string) {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "ID\tTITLE\tTYPE\tSPACE ID")
-	for _, r := range result.Results {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Title, r.Type, r.SpaceID)
+	discardWrite(fmt.Fprintln(tw, "ID\tTITLE\tSPACE ID"))
+	for _, result := range results {
+		discardWrite(fmt.Fprintf(tw, "%s\t%s\t%s\n", result.ID, result.Title, result.SpaceID))
 	}
-	tw.Flush()
-	if result.NextCursor != "" {
-		fmt.Fprintf(w, "\nNext cursor: %s\n", result.NextCursor)
+	_ = tw.Flush()
+	if nextCursor != "" {
+		discardWrite(fmt.Fprintf(w, "\nNext cursor: %s\n", nextCursor))
+	}
+}
+
+func renderTreePlain(w io.Writer, tree PageTree) {
+	discardWrite(fmt.Fprintf(w, "Root page: %s\n", tree.RootPageID))
+	discardWrite(fmt.Fprintf(w, "Depth: %d\n", tree.Depth))
+	discardWrite(fmt.Fprintf(w, "Limit per level: %d\n", tree.LimitPerLevel))
+	if tree.HasMoreChildren {
+		discardWrite(fmt.Fprintln(w, "More children available: yes"))
+	}
+	if len(tree.Children) == 0 {
+		discardWrite(fmt.Fprintln(w, "\n(no children)"))
+		return
+	}
+	discardWrite(fmt.Fprintln(w))
+	renderTreeNodes(w, tree.Children, "")
+}
+
+func renderTreeNodes(w io.Writer, nodes []PageTreeNode, prefix string) {
+	for i, node := range nodes {
+		connector := "|- "
+		nextPrefix := prefix + "|  "
+		if i == len(nodes)-1 {
+			connector = "`- "
+			nextPrefix = prefix + "   "
+		}
+
+		suffix := ""
+		if node.HasMoreChildren {
+			suffix = " [more]"
+		}
+		discardWrite(fmt.Fprintf(w, "%s%s%s (id:%s)%s\n", prefix, connector, node.Title, node.ID, suffix))
+		if len(node.Children) > 0 {
+			renderTreeNodes(w, node.Children, nextPrefix)
+		}
 	}
 }

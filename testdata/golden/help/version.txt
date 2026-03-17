@@ -1,0 +1,21 @@
+Usage: confluence version [flags]
+
+Print the CLI version.
+
+Output (json):
+  {
+    "item": {"version":"1.2.3"},
+    "schema": {"itemType":"version","fields":["version"]}
+  }
+
+Examples:
+  confluence version
+  confluence --format plain version
+
+Flags:
+  -h, --help              Show command help.
+      --url=STRING        Confluence base URL ($CONFLUENCE_URL)
+      --email=STRING      Atlassian account email ($CONFLUENCE_EMAIL)
+      --token=STRING      Atlassian API token ($CONFLUENCE_API_TOKEN)
+      --format=json       Output format: json or plain
+      --timeout=30s       HTTP timeout

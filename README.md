@@ -1,24 +1,21 @@
 # confluence-cli
 
-Read-only CLI for [Confluence Cloud API](https://developer.atlassian.com/cloud/confluence/rest/v2/intro/), designed for AI agent consumption.
+Agent-first CLI for compact, read-oriented access to Confluence Cloud.
 
-- JSON output by default, parseable by any tool or agent
-- `--plain` flag for human-readable tables
-- `pages get --body-format view --plain` renders cleaned Markdown (not raw HTML) to reduce context size
-- Structured error messages to stderr with exit codes
-- Single binary with optional local credential fallback file
+`confluence` is designed for automation first:
+- JSON envelopes on stdout by default
+- structured JSON errors on stderr
+- bounded output by default
+- non-interactive auth only
+- help text that explains the live contract
 
-## Installation
+## Install
 
-### Homebrew (macOS / Linux)
+### Homebrew
 
 ```sh
 brew install Prisma-Labs-Dev/tap/confluence-cli
 ```
-
-### Binary download
-
-Download from [Releases](https://github.com/Prisma-Labs-Dev/confluence-cli/releases) and place in your `PATH`.
 
 ### From source
 
@@ -26,243 +23,187 @@ Download from [Releases](https://github.com/Prisma-Labs-Dev/confluence-cli/relea
 go install github.com/Prisma-Labs-Dev/confluence-cli/cmd/confluence@latest
 ```
 
-## Setup
+## Authentication
 
-Run `auth login` once to store credentials using an explicit non-interactive path:
+The CLI supports non-interactive setup only.
 
-```sh
-printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","token":"your-token"}' | confluence auth login --stdin-json
-```
-
-Credentials are stored in macOS Keychain. If Keychain is unavailable, the CLI falls back to a local file at:
-
-```text
-~/Library/Application Support/confluence-cli/credentials.json
-```
-
-You can still pass credentials as flags or environment variables when needed.
-See `confluence auth login` examples below for non-interactive agent flows.
-
-**Get your API token:** https://id.atlassian.com/manage-profile/security/api-tokens
-
-## Commands
-
-### `confluence spaces list`
-
-List all Confluence spaces.
+### 1. Flags or environment variables
 
 ```sh
-# JSON (default)
-confluence spaces list
-
-# Limit results
-confluence spaces list --limit 10
-
-# Paginate with cursor from previous response
-confluence spaces list --cursor "eyJpZCI6..."
-
-# Human-readable table
-confluence spaces list --plain
+confluence \
+  --url https://your-domain.atlassian.net \
+  --email you@example.com \
+  --token "$CONFLUENCE_API_TOKEN" \
+  auth login
 ```
 
-### `confluence pages list`
-
-List pages in a space.
+### 2. Full credential JSON from stdin
 
 ```sh
-# All pages in a space
-confluence pages list --space-id 12345
-
-# Sort by recently modified (descending)
-confluence pages list --space-id 12345 --sort -modified-date
-
-# Paginate
-confluence pages list --space-id 12345 --limit 20 --cursor "eyJpZCI6..."
+printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","token":"TOKEN"}' \
+  | confluence auth login --stdin-json
 ```
 
-### `confluence pages get`
-
-Get a single page by ID, optionally with body content.
+### 3. Token from stdin
 
 ```sh
-# Metadata only
-confluence pages get --page-id 67890
-
-# With rendered HTML body
-confluence pages get --page-id 67890 --body-format view
-
-# In --plain mode, the view body is converted to Markdown for readability/context efficiency
-confluence --plain pages get --page-id 67890 --body-format view
-
-# With raw storage format (Confluence XML)
-confluence pages get --page-id 67890 --body-format storage
-
-# With Atlas Doc Format (structured JSON)
-confluence pages get --page-id 67890 --body-format atlas_doc_format
+printf '%s' "$CONFLUENCE_API_TOKEN" \
+  | confluence --url https://your-domain.atlassian.net --email you@example.com auth login --token-stdin
 ```
 
-### `confluence pages tree`
+Credential resolution for read commands is:
+1. explicit flags / environment variables
+2. stored credentials
 
-Show child pages as a tree.
+Stored credentials go to macOS Keychain first, then to a local config file fallback if Keychain is unavailable.
 
-```sh
-# Direct children only (depth 1)
-confluence pages tree --page-id 67890
+## Command surface
 
-# Recurse 3 levels deep
-confluence pages tree --page-id 67890 --depth 3
+Primary commands:
+- `confluence spaces list`
+- `confluence pages list`
+- `confluence pages get`
+- `confluence pages tree`
+- `confluence pages search`
+- `confluence auth login`
+- `confluence version`
 
-# Plain text tree view
-confluence pages tree --page-id 67890 --depth 2 --plain
-```
+Run `confluence <command> --help` for the authoritative contract, including output shape, pagination behavior, defaults, and examples.
 
-Plain output renders a tree:
+## Output contract
 
-```
-Page 67890
-├── Getting Started (id:11111)
-│   ├── Installation (id:22222)
-│   └── Configuration (id:33333)
-└── API Reference (id:44444)
-```
+### List commands
 
-### `confluence pages search`
-
-Search pages using [CQL (Confluence Query Language)](https://developer.atlassian.com/cloud/confluence/advanced-searching-using-cql/).
-
-```sh
-# Search by space
-confluence pages search --cql "type=page AND space=MYSPACE"
-
-# Search by title
-confluence pages search --cql "title ~ 'meeting notes'"
-
-# Full-text search
-confluence pages search --cql "text ~ 'deployment process'"
-
-# Combine with space filter flag
-confluence pages search --cql "type=page" --space-id 12345
-
-# Limit results
-confluence pages search --cql "type=page AND space=DEV" --limit 5
-```
-
-### `confluence version`
-
-```sh
-confluence version
-# {"version":"1.0.0"}
-
-confluence version --plain
-# confluence 1.0.0
-```
-
-### `confluence auth login`
-
-Store credentials for future commands:
-
-```sh
-# non-interactive
-confluence --url https://your-domain.atlassian.net --email you@example.com --token your-token auth login
-
-# non-interactive with JSON credentials from stdin (agent-friendly)
-printf '{"url":"https://your-domain.atlassian.net","email":"you@example.com","token":"your-token"}' | confluence auth login --stdin-json
-
-# non-interactive with token from stdin
-printf '%s' "$CONFLUENCE_API_TOKEN" | confluence --url https://your-domain.atlassian.net --email you@example.com auth login --token-stdin
-
-# optional human-only prompt mode
-confluence auth login --prompt
-
-# disable prompts entirely (fail fast if anything is missing)
-confluence auth login --no-prompt
-```
-
-## Global Flags
-
-| Flag | Env var | Description |
-|------|---------|-------------|
-| `--url` | `CONFLUENCE_URL` | Confluence base URL (host, `/wiki`, or `/wiki/api/v2`) |
-| `--email` | `CONFLUENCE_EMAIL` | Atlassian account email |
-| `--token` | `CONFLUENCE_API_TOKEN` | Atlassian API token |
-| `--plain` | | Human-readable table output |
-| `--timeout` | | HTTP timeout (default: 30s) |
-
-## Output
-
-### JSON (default)
-
-All commands output JSON to stdout. Paginated responses include a `nextCursor` field:
+List commands return a CLI-owned envelope:
 
 ```json
 {
   "results": [
     {"id": "123", "key": "DEV", "name": "Development", "type": "global", "status": "current"}
   ],
-  "nextCursor": "eyJpZCI6..."
+  "page": {
+    "limit": 10,
+    "nextCursor": "eyJpZCI6..."
+  },
+  "schema": {
+    "itemType": "space-summary",
+    "fields": ["id", "key", "name", "type", "status"]
+  }
+}
+```
+
+### Single-object commands
+
+Single-object commands return a wrapped item:
+
+```json
+{
+  "item": {
+    "id": "67890",
+    "title": "Runbook",
+    "spaceId": "12345",
+    "status": "current"
+  },
+  "schema": {
+    "itemType": "page-detail",
+    "fields": ["id", "title", "spaceId", "status", "version"]
+  }
 }
 ```
 
 ### Errors
 
-Errors are JSON on stderr with a non-zero exit code:
+Errors are always JSON on stderr:
 
 ```json
-{"error": "missing required flags: --email (or CONFLUENCE_EMAIL)", "code": "VALIDATION"}
+{
+  "error": {
+    "code": "VALIDATION",
+    "message": "missing credentials: provide --url, --email, and --token, or store them with `confluence auth login`",
+    "hint": "Run `confluence auth login --help` for usage."
+  }
+}
 ```
 
-## Exit Codes
+### Exit codes
 
-| Code | Meaning | Example |
-|------|---------|---------|
-| 0 | Success | Command completed |
-| 1 | Runtime error | API returned 404/500, network failure |
-| 2 | Validation error | Missing required flag, unknown command |
-| 3 | Auth error | Invalid credentials (401/403) |
+| Code | Meaning |
+|---|---|
+| `0` | success |
+| `1` | runtime / API failure |
+| `2` | validation failure |
+| `3` | authentication / authorization failure |
 
-## Releasing
+## Examples
 
-Every push to `main` creates a release. By default this is a patch bump.
-
-To bump minor/major directly on push (without an intermediate patch), include one of these markers in the commit message:
-
-- `#minor` or `release:minor`
-- `#major` or `release:major`
-
-You can also trigger releases manually:
+### List spaces
 
 ```sh
-gh workflow run release.yml -f bump=patch
-gh workflow run release.yml -f bump=minor
-gh workflow run release.yml -f bump=major
+confluence spaces list
+confluence spaces list --limit 25
+confluence --format plain spaces list
 ```
 
-The workflow auto-tags from the highest existing semantic version, builds binaries for macOS and Linux (amd64/arm64), creates a GitHub release, and updates the Homebrew tap.
-
-**First-time setup:** Add a `HOMEBREW_TAP_GITHUB_TOKEN` secret to the repo with a GitHub PAT that has push access to `Prisma-Labs-Dev/homebrew-tap`.
-
-## CI
-
-CI runs on push and pull requests to `main` and executes:
+### List pages in a space
 
 ```sh
-go build ./...
-go test ./... -count=1
-go vet ./...
+confluence pages list --space-id 12345
+confluence pages list --space-id 12345 --sort -modified-date
 ```
 
-## Development
+### Get page metadata or body
 
-See [`DEVELOPMENT.md`](DEVELOPMENT.md) for local workflow, CI, release details, and Homebrew verification steps.
+```sh
+# metadata only
+confluence pages get --page-id 67890
 
-## Work Tracking
+# explicit body request
+confluence pages get --page-id 67890 --body-format view
 
-Current agent work packets and history live under:
+# plain output converts view HTML to Markdown
+confluence --format plain pages get --page-id 67890 --body-format view
+```
 
-- `docs/work/active/`
-- `docs/work/archive/`
-- `docs/work/INDEX.md`
+### Traverse a bounded tree
 
-## License
+```sh
+confluence pages tree --page-id 67890
+confluence pages tree --page-id 67890 --depth 2 --limit-per-level 5
+confluence --format plain pages tree --page-id 67890
+```
 
-MIT
+`pages tree` is intentionally bounded. It fetches only the first page of children per node and marks `hasMoreChildren` when more data exists.
+
+### Search pages
+
+```sh
+confluence pages search --query "deployment"
+confluence pages search --query "meeting notes" --title-only
+confluence pages search --query "runbook" --space-id 12345
+```
+
+Search uses the current supported Confluence Cloud REST v1 search endpoint internally because REST v2 does not yet provide equivalent CQL search.
+
+## Development and validation
+
+```sh
+make build
+make test
+make lint
+```
+
+Optional live golden validation against a real Confluence workspace:
+
+```sh
+zsh -lc 'CONFLUENCE_LIVE_E2E=1 go test -run LiveAPI ./...'
+```
+
+Refresh the redacted live golden snapshot intentionally:
+
+```sh
+zsh -lc 'CONFLUENCE_LIVE_E2E=1 CONFLUENCE_LIVE_E2E_UPDATE=1 go test -run LiveAPI ./...'
+```
+
+The checked-in live golden stores only redacted contract summaries, not raw page content or titles. For more stable selection you can optionally set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
+
+See `DEVELOPMENT.md` for local workflow, CI, release flow, and linting details.

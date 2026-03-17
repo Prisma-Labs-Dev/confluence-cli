@@ -1,0 +1,18 @@
+Usage: confluence pages <command>
+
+Page discovery commands.
+
+Commands:
+  list [flags]
+    List pages in a space with bounded summaries.
+
+  get [flags]
+    Get page metadata by default; request body content explicitly.
+
+  tree [flags]
+    Traverse a bounded page tree with per-level limits.
+
+  search [flags]
+    Search pages with safe query inputs.
+
+Run "confluence pages <command> --help" for the live contract.

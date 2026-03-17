@@ -34,11 +34,17 @@ jobs:
         with:
           go-version: "1.23"
 
-      - name: Build and test
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          args: ./...
+
+      - name: Build, test, vet, and enforce file limits
         run: |
           go build ./...
           go test ./... -count=1
           go vet ./...
+          ./scripts/check-file-length.sh
 
       - name: Resolve bump type
         id: bump

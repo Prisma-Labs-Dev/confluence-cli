@@ -1,0 +1,9 @@
+Usage: confluence spaces <command>
+
+Space discovery commands.
+
+Commands:
+  list [flags]
+    List spaces with compact summaries and cursor pagination.
+
+Run "confluence spaces list --help" for the live contract.

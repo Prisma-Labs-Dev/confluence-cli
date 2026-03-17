@@ -2,27 +2,29 @@ package cli
 
 import confluence "github.com/Prisma-Labs-Dev/confluence-cli"
 
-type SpacesCmd struct {
-	List SpacesListCmd `cmd:"" help:"List spaces"`
-}
-
 type SpacesListCmd struct {
-	Limit  int    `help:"Maximum number of results" default:"25"`
-	Cursor string `help:"Pagination cursor"`
+	Limit  int    `help:"Maximum number of results per page" default:"10"`
+	Cursor string `help:"Opaque cursor from the previous response"`
 }
 
 func (cmd *SpacesListCmd) Run(app *App) error {
-	result, err := app.Client.ListSpaces(confluence.ListSpacesOptions{
-		Limit:  cmd.Limit,
-		Cursor: cmd.Cursor,
-	})
+	if err := validateRange("limit", cmd.Limit, 1, maxListLimit, helpHint("spaces list")); err != nil {
+		return err
+	}
+
+	result, err := app.Client.ListSpaces(confluence.ListSpacesOptions{Limit: cmd.Limit, Cursor: cmd.Cursor})
 	if err != nil {
 		return err
 	}
 
-	if app.Plain {
-		renderSpaces(app.Stdout, result)
+	items := make([]SpaceSummary, len(result.Results))
+	for i, space := range result.Results {
+		items[i] = newSpaceSummary(space)
+	}
+
+	if app.IsPlain() {
+		renderSpacesPlain(app.Stdout, items, result.NextCursor)
 		return nil
 	}
-	return renderJSON(app.Stdout, result)
+	return renderJSON(app.Stdout, listEnvelope(items, cmd.Limit, result.NextCursor, "space-summary", []string{"id", "key", "name", "type", "status"}))
 }

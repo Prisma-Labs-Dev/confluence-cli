@@ -1,88 +1,113 @@
 # Development Guide
 
-This document is the single source of truth for local development, CI behavior, and release flow.
+This document is the local workflow and CI/release reference for `confluence-cli`.
 
 ## Prerequisites
 
 - Go `1.23`
 - `make`
-- Optional for releases: `gh` (GitHub CLI), access to this repo and `Prisma-Labs-Dev/homebrew-tap`
+- `golangci-lint` for local lint runs
+- Optional for releases: `gh` plus access to this repo and `Prisma-Labs-Dev/homebrew-tap`
 
-## Local Workflow
+## Local workflow
 
 ```sh
 # build local binary
 make build
 
-# run test suite
+# run fixture/unit/integration tests
 make test
 
-# optional lint
+# run lint + file-size guardrails
 make lint
 ```
 
-Equivalent CI checks:
+Optional live golden validation against a real workspace:
 
 ```sh
-go build ./...
-go test ./... -count=1
-go vet ./...
+zsh -lc 'CONFLUENCE_LIVE_E2E=1 go test -run LiveAPI ./...'
 ```
+
+Refresh the redacted live golden snapshot on purpose:
+
+```sh
+zsh -lc 'CONFLUENCE_LIVE_E2E=1 CONFLUENCE_LIVE_E2E_UPDATE=1 go test -run LiveAPI ./...'
+```
+
+The live golden is intentionally sanitized before it is written to `testdata/golden/live/contract.json`, so repo snapshots never contain raw workspace content. If you want a more stable target page or query, set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
 
 ## CI
 
 Workflow: `.github/workflows/ci.yml`
 
-- Triggers on:
-  - `push` to `main`
-  - `pull_request` targeting `main`
-- Runs:
-  - `go build ./...`
-  - `go test ./... -count=1`
-  - `go vet ./...`
+CI runs on pushes and pull requests to `main` and executes:
+
+```sh
+go build ./...
+go test ./... -count=1
+go vet ./...
+golangci-lint run ./...
+./scripts/check-file-length.sh
+```
+
+## Linting policy
+
+Linting is enforced in CI and locally.
+
+Current guardrails:
+- `gofmt`
+- `govet`
+- `staticcheck`
+- `gosimple`
+- `unused`
+- `ineffassign`
+- `errcheck`
+- `misspell`
+- `unconvert`
+- Go file size limits via `scripts/check-file-length.sh`
+
+Default file-size limits:
+- non-test Go files: `300` lines max
+- test Go files: `700` lines max
+
+If a file naturally wants to exceed those limits, split it instead of raising the cap unless there is a strong reason.
 
 ## Releases
 
 Workflow: `.github/workflows/release.yml`
 
-- Auto release on push:
-  - Triggered on every `push` to `main`
-  - Uses `patch` bump by default
-  - Supports commit-message bump markers:
-    - `#minor` or `release:minor`
-    - `#major` or `release:major`
-- Manual patch/minor/major:
-  - Trigger via:
-    - `gh workflow run release.yml -f bump=patch`
-    - `gh workflow run release.yml -f bump=minor`
-    - `gh workflow run release.yml -f bump=major`
-
-Release workflow order:
-1. Checkout full git history/tags.
-2. Run build/test/vet gates.
-3. Compute next version from the highest semantic version tag (not nearest git tag).
-4. Create and push git tag.
+Release flow:
+1. Checkout full git history and tags.
+2. Run build, test, vet, lint, and file-size checks.
+3. Compute the next semantic version from tags.
+4. Create and push the tag.
 5. Run GoReleaser.
-6. Update Homebrew tap formula (`Prisma-Labs-Dev/homebrew-tap`).
+6. Update the Homebrew tap.
 
-## Homebrew Verification
+Automatic bump markers in commit messages:
+- `#minor` or `release:minor`
+- `#major` or `release:major`
+
+Manual trigger examples:
 
 ```sh
-# inspect published formula version
-brew info Prisma-Labs-Dev/tap/confluence-cli
-
-# update metadata and install latest release
-brew update
-brew upgrade Prisma-Labs-Dev/tap/confluence-cli
-
-# validate installed version
-confluence version --plain
+gh workflow run release.yml -f bump=patch
+gh workflow run release.yml -f bump=minor
+gh workflow run release.yml -f bump=major
 ```
 
-## Notes For Agent Contributors
+## Homebrew verification
 
-- Keep CLI behavior stable:
-  - JSON output must remain machine-parseable.
-  - Human-readable output belongs behind `--plain`.
-- If changing plain rendering, add tests under `internal/cli` and unit tests for helper packages.
-- Do not edit `CLAUDE.md`; update `agents.mt` for project instructions.
+```sh
+brew info Prisma-Labs-Dev/tap/confluence-cli
+brew update
+brew upgrade Prisma-Labs-Dev/tap/confluence-cli
+confluence version
+```
+
+## Agent contributor notes
+
+- Prefer the CLI's documented JSON envelopes over raw upstream payload assumptions.
+- Keep auth non-interactive.
+- Keep help text aligned with the actual live contract.
+- Update `AGENTS.md` for shared entrypoint changes and `AGENT_PROMPT.md` for rebuild-brief changes.

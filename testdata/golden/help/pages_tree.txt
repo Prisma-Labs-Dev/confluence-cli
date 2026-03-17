@@ -1,0 +1,39 @@
+Usage: confluence pages tree --page-id=STRING [flags]
+
+Traverse a bounded page tree.
+
+Default behavior:
+  - Depth defaults to 1.
+  - Each node fetches at most 10 children.
+  - If a node has more children, hasMoreChildren is set instead of fetching the entire subtree.
+
+Output (json):
+  {
+    "item": {
+      "rootPageId":"...",
+      "depth": 1,
+      "limitPerLevel": 10,
+      "hasMoreChildren": true,
+      "children": [
+        {"id":"...","title":"...","spaceId":"...","status":"...","hasMoreChildren":true,"children":[...]}
+      ]
+    },
+    "schema": {"itemType":"page-tree","fields":["rootPageId","depth","limitPerLevel","hasMoreChildren","children"]}
+  }
+
+Examples:
+  confluence pages tree --page-id 67890
+  confluence pages tree --page-id 67890 --depth 2
+  confluence pages tree --page-id 67890 --depth 2 --limit-per-level 5
+  confluence --format plain pages tree --page-id 67890
+
+Flags:
+  -h, --help                    Show command help.
+      --url=STRING              Confluence base URL ($CONFLUENCE_URL)
+      --email=STRING            Atlassian account email ($CONFLUENCE_EMAIL)
+      --token=STRING            Atlassian API token ($CONFLUENCE_API_TOKEN)
+      --format=json             Output format: json or plain
+      --timeout=30s             HTTP timeout
+      --page-id=STRING          Root page ID
+      --depth=1                Maximum traversal depth (1-5)
+      --limit-per-level=10      Maximum children fetched per node (1-25)

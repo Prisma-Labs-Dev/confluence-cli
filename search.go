@@ -5,17 +5,25 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
-type SearchOptions struct {
-	CQL    string
-	Limit  int
-	Cursor string
+type PageSearchOptions struct {
+	Query     string
+	TitleOnly bool
+	SpaceID   string
+	Limit     int
+	Cursor    string
 }
 
-func (c *Client) Search(opts SearchOptions) (*ListResult[SearchResult], error) {
+func (c *Client) SearchPages(opts PageSearchOptions) (*ListResult[SearchResult], error) {
+	cql, err := buildPageSearchCQL(opts)
+	if err != nil {
+		return nil, err
+	}
+
 	query := url.Values{}
-	query.Set("cql", opts.CQL)
+	query.Set("cql", cql)
 	if opts.Limit > 0 {
 		query.Set("limit", strconv.Itoa(opts.Limit))
 	}
@@ -23,10 +31,9 @@ func (c *Client) Search(opts SearchOptions) (*ListResult[SearchResult], error) {
 		query.Set("cursor", opts.Cursor)
 	}
 
-	// Note: Search uses the v1 API endpoint as v2 doesn't have CQL search
 	body, err := c.doV1("GET", "/search", query)
 	if err != nil {
-		return nil, fmt.Errorf("searching: %w", err)
+		return nil, fmt.Errorf("searching pages: %w", err)
 	}
 
 	var raw struct {
@@ -51,16 +58,16 @@ func (c *Client) Search(opts SearchOptions) (*ListResult[SearchResult], error) {
 	}
 
 	results := make([]SearchResult, len(raw.Results))
-	for i, r := range raw.Results {
+	for i, result := range raw.Results {
 		results[i] = SearchResult{
-			ID:      r.Content.ID,
-			Title:   r.Content.Title,
-			Type:    r.Content.Type,
-			Excerpt: r.Excerpt,
-			URL:     r.URL,
+			ID:      result.Content.ID,
+			Title:   result.Content.Title,
+			Type:    result.Content.Type,
+			Excerpt: result.Excerpt,
+			URL:     result.URL,
 		}
-		if r.Content.Space != nil {
-			results[i].SpaceID = r.Content.Space.ID
+		if result.Content.Space != nil {
+			results[i].SpaceID = result.Content.Space.ID
 		}
 	}
 
@@ -68,4 +75,28 @@ func (c *Client) Search(opts SearchOptions) (*ListResult[SearchResult], error) {
 		Results:    results,
 		NextCursor: extractCursor(raw.Links.Next),
 	}, nil
+}
+
+func buildPageSearchCQL(opts PageSearchOptions) (string, error) {
+	query := strings.TrimSpace(opts.Query)
+	if query == "" {
+		return "", fmt.Errorf("search query is required")
+	}
+
+	field := "text"
+	if opts.TitleOnly {
+		field = "title"
+	}
+
+	cql := fmt.Sprintf("type=page AND %s ~ \"%s\"", field, escapeCQL(query))
+	if strings.TrimSpace(opts.SpaceID) != "" {
+		cql += fmt.Sprintf(" AND space.id=%s", strings.TrimSpace(opts.SpaceID))
+	}
+	return cql, nil
+}
+
+func escapeCQL(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `"`, `\\"`)
+	return value
 }

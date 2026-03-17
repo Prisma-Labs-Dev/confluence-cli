@@ -1,29 +1,24 @@
 # AGENTS.md
 
-Repository rules for agents working in `confluence-cli`.
+Agent entrypoint for work in `confluence-cli`.
 
-## Mission
+## Source of truth
 
-This CLI is built by agents for agents.
+Use `AGENT_PROMPT.md` as the active implementation brief for the rebuild.
 
-Human-friendly output is secondary.
+## Current direction
 
-## Required Behavior
+This repository is being rebuilt as an agent-first Confluence Cloud CLI.
 
-1. Non-interactive agent paths must never hang.
-2. JSON is the default machine contract.
-3. Errors must be JSON on stderr with stable code mapping.
-4. Exit codes must remain consistent with `contract/error-codes.md`.
+- optimize for agents, not human-first terminal habits
+- prefer explicit non-interactive flows
+- make `--help` sufficient for contract discovery
+- keep stdout/stderr behavior predictable and machine-friendly
+- keep output bounded by default
+- strengthen golden and end-to-end contract validation
 
-## Work Tracking
+## Compatibility stance
 
-1. Read `docs/work/INDEX.md` before making changes.
-2. Continue active packet if one exists.
-3. Update finding status/result fields as work progresses.
-4. Archive completed packets under `docs/work/archive/<year>/`.
+Historical guidance in older agent docs is obsolete.
 
-## Existing Local Context
-
-This repo also includes `agents.mt`.
-
-Treat `AGENTS.md` as the primary Codex entrypoint and keep it aligned with `agents.mt` intent.
+If legacy behavior conflicts with the cleaner agent-first design in `AGENT_PROMPT.md`, prefer the new design.

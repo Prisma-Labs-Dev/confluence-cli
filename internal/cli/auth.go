@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,127 +12,83 @@ import (
 
 var isTerminal = term.IsTerminal
 
-type AuthCmd struct {
-	Login AuthLoginCmd `cmd:"" help:"Store credentials securely"`
-}
-
 type AuthLoginCmd struct {
-	StdinJSON  bool `name:"stdin-json" help:"Read credentials JSON from stdin (url,email,token)"`
-	TokenStdin bool `name:"token-stdin" help:"Read token from stdin"`
-	Prompt     bool `name:"prompt" help:"Allow interactive prompts for missing fields (human use)" default:"false"`
-	NoPrompt   bool `name:"no-prompt" help:"Do not prompt for missing fields; fail instead" default:"false"`
+	StdinJSON  bool `name:"stdin-json" help:"Read {url,email,token} JSON from piped stdin"`
+	TokenStdin bool `name:"token-stdin" help:"Read token from piped stdin"`
 }
 
 func (cmd *AuthLoginCmd) Run(app *App) error {
+	if cmd.StdinJSON && cmd.TokenStdin {
+		return validationError("--stdin-json and --token-stdin are mutually exclusive", helpHint("auth login"))
+	}
+
+	stdinIsTerminal := isTerminal(int(os.Stdin.Fd()))
 	creds := Credentials{
 		URL:   strings.TrimSpace(app.URL),
 		Email: strings.TrimSpace(app.Email),
 		Token: strings.TrimSpace(app.Token),
 	}
-	stdinIsTerminal := isTerminal(int(os.Stdin.Fd()))
 
-	if cmd.StdinJSON {
+	switch {
+	case cmd.StdinJSON:
+		if creds.URL != "" || creds.Email != "" || creds.Token != "" {
+			return validationError("--stdin-json cannot be combined with --url, --email, or --token", helpHint("auth login"))
+		}
 		if stdinIsTerminal {
-			return validationErrorf("--stdin-json requires piped stdin; refusing terminal input")
+			return validationError("--stdin-json requires piped stdin", helpHint("auth login"))
 		}
 		stdinCreds, err := readCredentialsJSON(os.Stdin)
 		if err != nil {
-			return validationErrorf("read stdin credentials: %v", err)
+			return validationErrorf(helpHint("auth login"), "read stdin credentials: %v", err)
 		}
-		if creds.URL == "" {
-			creds.URL = stdinCreds.URL
+		creds = stdinCreds
+	case cmd.TokenStdin:
+		if creds.Token != "" {
+			return validationError("--token-stdin cannot be combined with --token", helpHint("auth login"))
 		}
-		if creds.Email == "" {
-			creds.Email = stdinCreds.Email
+		if creds.URL == "" || creds.Email == "" {
+			return validationError("--token-stdin requires --url and --email (or matching env vars)", helpHint("auth login"))
 		}
-		if creds.Token == "" {
-			creds.Token = stdinCreds.Token
-		}
-	}
-	if cmd.TokenStdin && creds.Token == "" {
 		if stdinIsTerminal {
-			return validationErrorf("--token-stdin requires piped stdin; refusing terminal input")
+			return validationError("--token-stdin requires piped stdin", helpHint("auth login"))
 		}
 		token, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return validationErrorf("read token from stdin: %v", err)
+			return validationErrorf(helpHint("auth login"), "read token from stdin: %v", err)
 		}
 		creds.Token = strings.TrimSpace(string(token))
-	}
-
-	interactive := stdinIsTerminal && cmd.Prompt && !cmd.NoPrompt
-
-	var err error
-	if creds.URL == "" && interactive {
-		creds.URL, err = promptLine("Confluence URL: ")
-		if err != nil {
-			return validationErrorf("read url: %v", err)
-		}
-	}
-	if creds.Email == "" && interactive {
-		creds.Email, err = promptLine("Atlassian email: ")
-		if err != nil {
-			return validationErrorf("read email: %v", err)
-		}
-	}
-	if creds.Token == "" && interactive {
-		creds.Token, err = promptSecret("Atlassian API token: ")
-		if err != nil {
-			return validationErrorf("read token: %v", err)
-		}
+	default:
+		// flags/env-only mode
 	}
 
 	creds.URL = strings.TrimSpace(creds.URL)
 	creds.Email = strings.TrimSpace(creds.Email)
 	creds.Token = strings.TrimSpace(creds.Token)
 	if creds.URL == "" || creds.Email == "" || creds.Token == "" {
-		return validationErrorf("missing required fields: --url, --email, --token (or use --stdin-json / --token-stdin)")
+		return validationError("auth login requires url, email, and token; use flags/env vars, --stdin-json, or --token-stdin", helpHint("auth login"))
 	}
 
-	location, err := saveStoredCredentials(creds)
+	storedIn, err := saveStoredCredentials(creds)
 	if err != nil {
-		return err
+		return fmt.Errorf("store credentials: %w", err)
 	}
 
-	if app.Plain {
-		fmt.Fprintf(app.Stdout, "Stored credentials in %s\n", location)
+	response := itemEnvelope(AuthLoginInfo{StoredIn: storedIn}, "auth-login", []string{"storedIn"})
+	if app.IsPlain() {
+		discardWrite(fmt.Fprintf(app.Stdout, "Stored credentials in %s\n", storedIn))
 		return nil
 	}
-	return renderJSON(app.Stdout, struct {
-		StoredIn string `json:"storedIn"`
-	}{
-		StoredIn: location,
-	})
+	return renderJSON(app.Stdout, response)
 }
 
 func readCredentialsJSON(r io.Reader) (Credentials, error) {
-	var c Credentials
-	b, err := io.ReadAll(r)
+	var creds Credentials
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return Credentials{}, err
 	}
-	if err := json.Unmarshal(b, &c); err != nil {
+	if err := json.Unmarshal(data, &creds); err != nil {
 		return Credentials{}, err
 	}
-	return c, nil
-}
-
-func promptLine(label string) (string, error) {
-	fmt.Fprint(os.Stderr, label)
-	r := bufio.NewReader(os.Stdin)
-	v, err := r.ReadString('\n')
-	if err != nil && !errors.Is(err, io.EOF) {
-		return "", err
-	}
-	return strings.TrimSpace(v), nil
-}
-
-func promptSecret(label string) (string, error) {
-	fmt.Fprint(os.Stderr, label)
-	b, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Fprintln(os.Stderr)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+	return creds, nil
 }

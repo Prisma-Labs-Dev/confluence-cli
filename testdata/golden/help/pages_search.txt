@@ -1,0 +1,40 @@
+Usage: confluence pages search --query=STRING [flags]
+
+Search pages with safe query inputs.
+
+Default behavior:
+  - Search mode is full-text unless --title-only is set.
+  - Results are bounded by --limit.
+  - Internally this uses Atlassian's Confluence Cloud REST v1 search endpoint because REST v2 does not yet provide CQL search.
+
+Output (json):
+  {
+    "results": [
+      {"id":"...","title":"...","spaceId":"...","excerpt":"...","url":"..."}
+    ],
+    "page": {"limit": 10, "nextCursor": "..."},
+    "schema": {"itemType":"page-search-result","fields":["id","title","spaceId","excerpt","url"]}
+  }
+
+Pagination:
+  - Pass response.page.nextCursor back via --cursor.
+  - Use --space-id to keep results scoped and compact.
+
+Examples:
+  confluence pages search --query "deployment"
+  confluence pages search --query "meeting notes" --title-only
+  confluence pages search --query "runbook" --space-id 12345
+  confluence --format plain pages search --query "runbook" --space-id 12345
+
+Flags:
+  -h, --help               Show command help.
+      --url=STRING         Confluence base URL ($CONFLUENCE_URL)
+      --email=STRING       Atlassian account email ($CONFLUENCE_EMAIL)
+      --token=STRING       Atlassian API token ($CONFLUENCE_API_TOKEN)
+      --format=json        Output format: json or plain
+      --timeout=30s        HTTP timeout
+      --query=STRING       Search text to match in page content or titles
+      --title-only         Restrict matching to page titles
+      --space-id=STRING    Optional space ID filter
+      --limit=10           Maximum number of results per page (1-100)
+      --cursor=STRING      Opaque cursor from response.page.nextCursor

@@ -51,9 +51,6 @@ func loadStoredCredentials() (Credentials, error) {
 	if err == nil {
 		return creds, nil
 	}
-	if !errors.Is(err, errNotFound) {
-		// If keychain exists but failed unexpectedly, still allow file fallback.
-	}
 
 	creds, err = loadFromFile()
 	if err == nil || errors.Is(err, errNotFound) {

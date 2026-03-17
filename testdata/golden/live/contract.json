@@ -1,0 +1,145 @@
+{
+  "spacesList": {
+    "schema": {
+      "itemType": "space-summary",
+      "fields": [
+        "id",
+        "key",
+        "name",
+        "status",
+        "type"
+      ]
+    },
+    "page": {
+      "limit": 1,
+      "hasNextCursor": true
+    },
+    "resultCount": 1,
+    "first": {
+      "hasId": true,
+      "hasKey": true,
+      "hasName": true,
+      "type": "global",
+      "status": "current"
+    }
+  },
+  "pagesList": {
+    "schema": {
+      "itemType": "page-summary",
+      "fields": [
+        "id",
+        "parentId",
+        "spaceId",
+        "status",
+        "title",
+        "versionNumber"
+      ]
+    },
+    "page": {
+      "limit": 1,
+      "hasNextCursor": true
+    },
+    "resultCount": 1,
+    "first": {
+      "hasId": true,
+      "hasTitle": true,
+      "hasSpaceId": true,
+      "status": "current",
+      "hasParentId": true,
+      "hasVersionNumber": true
+    }
+  },
+  "pagesGet": {
+    "schema": {
+      "itemType": "page-detail",
+      "fields": [
+        "authorId",
+        "createdAt",
+        "id",
+        "parentId",
+        "parentType",
+        "spaceId",
+        "status",
+        "title",
+        "version"
+      ]
+    },
+    "item": {
+      "hasId": true,
+      "hasTitle": true,
+      "hasSpaceId": true,
+      "status": "current",
+      "hasVersion": true,
+      "hasBody": false
+    }
+  },
+  "pagesGetView": {
+    "schema": {
+      "itemType": "page-detail",
+      "fields": [
+        "authorId",
+        "body",
+        "createdAt",
+        "id",
+        "parentId",
+        "parentType",
+        "spaceId",
+        "status",
+        "title",
+        "version"
+      ]
+    },
+    "item": {
+      "hasId": false,
+      "hasTitle": false,
+      "hasSpaceId": false,
+      "hasVersion": false,
+      "hasBody": true,
+      "bodyFormat": "view",
+      "bodyHasValue": true
+    }
+  },
+  "pagesTree": {
+    "schema": {
+      "itemType": "page-tree",
+      "fields": [
+        "children",
+        "depth",
+        "hasMoreChildren",
+        "limitPerLevel",
+        "rootPageId"
+      ]
+    },
+    "item": {
+      "hasRootPageId": true,
+      "depth": 1,
+      "limitPerLevel": 10,
+      "hasMoreChildren": false,
+      "childCount": 0
+    }
+  },
+  "pagesSearch": {
+    "schema": {
+      "itemType": "page-search-result",
+      "fields": [
+        "excerpt",
+        "id",
+        "spaceId",
+        "title",
+        "url"
+      ]
+    },
+    "page": {
+      "limit": 1,
+      "hasNextCursor": true
+    },
+    "resultCount": 1,
+    "first": {
+      "hasId": true,
+      "hasTitle": true,
+      "hasSpaceId": false,
+      "hasExcerpt": true,
+      "hasUrl": true
+    }
+  }
+}

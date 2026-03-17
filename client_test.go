@@ -18,7 +18,7 @@ func testServer(t *testing.T, routes map[string]string) *httptest.Server {
 		auth := r.Header.Get("Authorization")
 		if !strings.HasPrefix(auth, "Basic ") {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
+			_, _ = w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
 			return
 		}
 
@@ -31,14 +31,14 @@ func testServer(t *testing.T, routes map[string]string) *httptest.Server {
 					t.Fatalf("reading fixture %s: %v", fixture, err)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				w.Write(data)
+				_, _ = w.Write(data)
 				return
 			}
 		}
 
 		// No route matched
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`{"errors":[{"message":"Not found"}]}`))
+		_, _ = w.Write([]byte(`{"errors":[{"message":"Not found"}]}`))
 	}))
 }
 
@@ -245,16 +245,16 @@ func TestGetPageChildrenEmpty(t *testing.T) {
 	}
 }
 
-func TestSearch(t *testing.T) {
+func TestSearchPages(t *testing.T) {
 	srv := testServer(t, map[string]string{
 		"/wiki/rest/api/search": "search.json",
 	})
 	defer srv.Close()
 
 	client := newTestClient(srv.URL)
-	result, err := client.Search(SearchOptions{CQL: "type=page AND space=CF", Limit: 2})
+	result, err := client.SearchPages(PageSearchOptions{Query: "Sendgrid", Limit: 2})
 	if err != nil {
-		t.Fatalf("Search: %v", err)
+		t.Fatalf("SearchPages: %v", err)
 	}
 
 	if len(result.Results) != 2 {
@@ -286,7 +286,7 @@ func TestSearch(t *testing.T) {
 func TestAPIError401(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
+		_, _ = w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
 	}))
 	defer srv.Close()
 
@@ -311,7 +311,7 @@ func TestAPIError404(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		data, _ := os.ReadFile("testdata/error_404.json")
-		w.Write(data)
+		_, _ = w.Write(data)
 	}))
 	defer srv.Close()
 
@@ -330,7 +330,7 @@ func TestInvalidCredentials(t *testing.T) {
 	// Server that always returns 401 (simulating invalid credentials)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
+		_, _ = w.Write([]byte(`{"message":"Unauthorized; check your credentials","statusCode":401}`))
 	}))
 	defer srv.Close()
 
@@ -467,7 +467,7 @@ func TestClientBaseURLFromRestAPIPath(t *testing.T) {
 	if _, err := client.ListSpaces(ListSpacesOptions{}); err != nil {
 		t.Fatalf("ListSpaces with /wiki/rest/api base path: %v", err)
 	}
-	if _, err := client.Search(SearchOptions{CQL: "type=page", Limit: 2}); err != nil {
-		t.Fatalf("Search with /wiki/rest/api base path: %v", err)
+	if _, err := client.SearchPages(PageSearchOptions{Query: "runbook", Limit: 2}); err != nil {
+		t.Fatalf("SearchPages with /wiki/rest/api base path: %v", err)
 	}
 }

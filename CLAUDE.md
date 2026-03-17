@@ -1,3 +1,3 @@
-See [agents.mt](agents.mt) for all project instructions.
+See [AGENTS.md](AGENTS.md) for the repository entrypoint and `AGENT_PROMPT.md` for the active rebuild brief.
 
-Claude instances: always edit `agents.mt`, not this file. This repository is worked on by multiple AI agents, not only Claude.
+Claude instances should treat `AGENTS.md` as the shared agent entrypoint.

@@ -1,13 +1,11 @@
 package confluence_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -26,15 +24,20 @@ func TestAuthLoginStdinJSON_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("auth login failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
 	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("expected empty stderr, got: %s", stderr)
+	}
 
 	var loginResp struct {
-		StoredIn string `json:"storedIn"`
+		Item struct {
+			StoredIn string `json:"storedIn"`
+		} `json:"item"`
 	}
 	if err := json.Unmarshal([]byte(stdout), &loginResp); err != nil {
 		t.Fatalf("auth login output not valid JSON: %v\nstdout=%s", err, stdout)
 	}
-	if loginResp.StoredIn != "file" {
-		t.Fatalf("storedIn = %q, want %q", loginResp.StoredIn, "file")
+	if loginResp.Item.StoredIn != "file" {
+		t.Fatalf("storedIn = %q, want %q", loginResp.Item.StoredIn, "file")
 	}
 
 	credFile := filepath.Join(configDir, "credentials.json")
@@ -50,6 +53,9 @@ func TestAuthLoginStdinJSON_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("spaces list failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
 	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("expected empty stderr, got: %s", stderr)
+	}
 
 	var spacesResp struct {
 		Results []struct {
@@ -61,9 +67,6 @@ func TestAuthLoginStdinJSON_Integration(t *testing.T) {
 	}
 	if len(spacesResp.Results) != 1 || spacesResp.Results[0].Key != "DEV" {
 		t.Fatalf("unexpected spaces list output: %s", stdout)
-	}
-	if strings.TrimSpace(stderr) != "" {
-		t.Fatalf("expected empty stderr, got: %s", stderr)
 	}
 }
 
@@ -81,97 +84,53 @@ func TestAuthLoginTokenStdin_Integration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("auth login --token-stdin failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
 	}
+	if strings.TrimSpace(stderr) != "" {
+		t.Fatalf("expected empty stderr, got: %s", stderr)
+	}
 
 	var loginResp struct {
-		StoredIn string `json:"storedIn"`
+		Item struct {
+			StoredIn string `json:"storedIn"`
+		} `json:"item"`
 	}
 	if err := json.Unmarshal([]byte(stdout), &loginResp); err != nil {
 		t.Fatalf("auth login output not valid JSON: %v\nstdout=%s", err, stdout)
 	}
-	if loginResp.StoredIn != "file" {
-		t.Fatalf("storedIn = %q, want %q", loginResp.StoredIn, "file")
-	}
-
-	stdout, stderr, err = runBinary(binPath, []string{"spaces", "list"}, "", envForIntegration(configDir)...)
-	if err != nil {
-		t.Fatalf("spaces list failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
-	}
-
-	var spacesResp struct {
-		Results []struct {
-			Key string `json:"key"`
-		} `json:"results"`
-	}
-	if err := json.Unmarshal([]byte(stdout), &spacesResp); err != nil {
-		t.Fatalf("spaces list output not valid JSON: %v\nstdout=%s", err, stdout)
-	}
-	if len(spacesResp.Results) != 1 || spacesResp.Results[0].Key != "DEV" {
-		t.Fatalf("unexpected spaces list output: %s", stdout)
-	}
-	if strings.TrimSpace(stderr) != "" {
-		t.Fatalf("expected empty stderr, got: %s", stderr)
+	if loginResp.Item.StoredIn != "file" {
+		t.Fatalf("storedIn = %q, want %q", loginResp.Item.StoredIn, "file")
 	}
 }
 
-func TestAuthLoginNoPrompt_Integration(t *testing.T) {
+func TestAuthLoginRejectsMixedInputModes_Integration(t *testing.T) {
 	tmp := t.TempDir()
 	configDir := filepath.Join(tmp, "config")
 	binPath := buildBinary(t, tmp)
 
-	stdout, stderr, err := runBinary(binPath, []string{"auth", "login", "--no-prompt"}, "", envForIntegration(configDir)...)
+	stdout, stderr, exitCode, err := runBinaryWithExitCode(binPath, []string{
+		"--url", "https://example.atlassian.net", "auth", "login", "--stdin-json",
+	}, `{"url":"https://example.atlassian.net","email":"a@b.com","token":"tok"}`, envForIntegration(configDir)...)
 	if err == nil {
-		t.Fatalf("expected auth login --no-prompt to fail; stdout=%s stderr=%s", stdout, stderr)
+		t.Fatalf("expected mixed input mode failure\nstdout=%s\nstderr=%s", stdout, stderr)
+	}
+	if exitCode != 2 {
+		t.Fatalf("exit code = %d, want %d", exitCode, 2)
 	}
 
 	var errResp struct {
-		Error string `json:"error"`
-		Code  string `json:"code"`
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 	if err := json.Unmarshal([]byte(strings.TrimSpace(stderr)), &errResp); err != nil {
 		t.Fatalf("stderr is not valid error JSON: %v\nstderr=%s", err, stderr)
 	}
-	if errResp.Code != "VALIDATION" {
-		t.Fatalf("error code = %q, want %q", errResp.Code, "VALIDATION")
+	if errResp.Error.Code != "VALIDATION" {
+		t.Fatalf("error code = %q, want %q", errResp.Error.Code, "VALIDATION")
 	}
-	if !strings.Contains(errResp.Error, "missing required fields") {
-		t.Fatalf("unexpected error message: %s", errResp.Error)
+	if !strings.Contains(errResp.Error.Message, "cannot be combined") {
+		t.Fatalf("unexpected error message: %s", errResp.Error.Message)
 	}
-}
-
-func TestGlobalHelpDoesNotExposeColorFlag_Integration(t *testing.T) {
-	tmp := t.TempDir()
-	binPath := buildBinary(t, tmp)
-
-	stdout, stderr, err := runBinary(binPath, []string{"--help"}, "", envForIntegration(filepath.Join(tmp, "config"))...)
-	if err != nil {
-		t.Fatalf("help failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
-	}
-	if strings.Contains(stdout, "--color") {
-		t.Fatalf("help should not expose --color: %s", stdout)
-	}
-}
-
-func TestAuthLoginHelpIncludesPromptFlag_Integration(t *testing.T) {
-	tmp := t.TempDir()
-	binPath := buildBinary(t, tmp)
-
-	stdout, stderr, err := runBinary(binPath, []string{"auth", "login", "--help"}, "", envForIntegration(filepath.Join(tmp, "config"))...)
-	if err != nil {
-		t.Fatalf("auth login help failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
-	}
-	if !strings.Contains(stdout, "--prompt") {
-		t.Fatalf("auth login help should include --prompt: %s", stdout)
-	}
-}
-
-func buildBinary(t *testing.T, dir string) string {
-	t.Helper()
-	binPath := filepath.Join(dir, "confluence")
-	build := exec.Command("go", "build", "-o", binPath, "./cmd/confluence")
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("build binary: %v\n%s", err, string(out))
-	}
-	return binPath
 }
 
 func integrationServer() *httptest.Server {
@@ -184,27 +143,4 @@ func integrationServer() *httptest.Server {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"results":[{"id":"1","key":"DEV","name":"Development","type":"global","status":"current"}]}`))
 	}))
-}
-
-func envForIntegration(configDir string) []string {
-	return []string{
-		"CONFLUENCE_DISABLE_KEYCHAIN=1",
-		"CONFLUENCE_CONFIG_DIR=" + configDir,
-		"CONFLUENCE_URL=",
-		"CONFLUENCE_EMAIL=",
-		"CONFLUENCE_API_TOKEN=",
-	}
-}
-
-func runBinary(bin string, args []string, stdin string, extraEnv ...string) (stdout, stderr string, runErr error) {
-	cmd := exec.Command(bin, args...)
-	cmd.Env = append(os.Environ(), extraEnv...)
-	cmd.Stdin = strings.NewReader(stdin)
-
-	var outBuf, errBuf bytes.Buffer
-	cmd.Stdout = &outBuf
-	cmd.Stderr = &errBuf
-
-	runErr = cmd.Run()
-	return outBuf.String(), errBuf.String(), runErr
 }

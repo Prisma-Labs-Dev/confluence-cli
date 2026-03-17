@@ -1,0 +1,9 @@
+Usage: confluence auth <command>
+
+Credential management commands.
+
+Commands:
+  login [flags]
+    Store credentials for later non-interactive use.
+
+Run "confluence auth login --help" for setup flows.

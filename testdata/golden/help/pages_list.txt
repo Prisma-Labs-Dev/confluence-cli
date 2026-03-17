@@ -1,0 +1,34 @@
+Usage: confluence pages list --space-id=STRING [flags]
+
+List pages in a space with bounded summaries.
+
+Output (json):
+  {
+    "results": [
+      {"id":"...","title":"...","spaceId":"...","status":"...","parentId":"...","versionNumber":123}
+    ],
+    "page": {"limit": 10, "nextCursor": "..."},
+    "schema": {"itemType":"page-summary","fields":["id","title","spaceId","status","parentId","versionNumber"]}
+  }
+
+Pagination:
+  - Results are bounded by --limit.
+  - Pass response.page.nextCursor back via --cursor.
+
+Examples:
+  confluence pages list --space-id 12345
+  confluence pages list --space-id 12345 --limit 20
+  confluence pages list --space-id 12345 --cursor abc123
+  confluence --format plain pages list --space-id 12345
+
+Flags:
+  -h, --help               Show command help.
+      --url=STRING         Confluence base URL ($CONFLUENCE_URL)
+      --email=STRING       Atlassian account email ($CONFLUENCE_EMAIL)
+      --token=STRING       Atlassian API token ($CONFLUENCE_API_TOKEN)
+      --format=json        Output format: json or plain
+      --timeout=30s        HTTP timeout
+      --space-id=STRING    Space ID from spaces list output
+      --limit=10           Maximum number of results per page (1-100)
+      --cursor=STRING      Opaque cursor from response.page.nextCursor
+      --sort=STRING        Sort order: title, created-date, or -modified-date

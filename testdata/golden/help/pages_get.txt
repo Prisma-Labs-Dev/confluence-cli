@@ -1,0 +1,36 @@
+Usage: confluence pages get --page-id=STRING [flags]
+
+Get a page by ID.
+
+Default behavior:
+  - Returns metadata only.
+  - Body content is omitted unless --body-format is set explicitly.
+
+Output (json):
+  {
+    "item": {
+      "id":"...",
+      "title":"...",
+      "spaceId":"...",
+      "status":"...",
+      "version":{"number":123},
+      "body":{"format":"view","value":"..."}
+    },
+    "schema": {"itemType":"page-detail","fields":["id","title","spaceId","status","parentId","parentType","authorId","createdAt","version","body"]}
+  }
+
+Examples:
+  confluence pages get --page-id 67890
+  confluence pages get --page-id 67890 --body-format view
+  confluence --format plain pages get --page-id 67890 --body-format view
+  confluence pages get --page-id 67890 --body-format storage
+
+Flags:
+  -h, --help                  Show command help.
+      --url=STRING            Confluence base URL ($CONFLUENCE_URL)
+      --email=STRING          Atlassian account email ($CONFLUENCE_EMAIL)
+      --token=STRING          Atlassian API token ($CONFLUENCE_API_TOKEN)
+      --format=json           Output format: json or plain
+      --timeout=30s           HTTP timeout
+      --page-id=STRING        Page ID from list/search output
+      --body-format=STRING    Optional body format: view, storage, atlas_doc_format
