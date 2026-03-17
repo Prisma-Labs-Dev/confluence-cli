@@ -43,7 +43,7 @@ Refresh the redacted live golden snapshot on purpose:
 zsh -lc 'CONFLUENCE_LIVE_E2E=1 CONFLUENCE_LIVE_E2E_UPDATE=1 go test -run LiveAPI ./...'
 ```
 
-The live golden is intentionally sanitized before it is written to `testdata/golden/live/contract.json`, so repo snapshots never contain raw workspace content. If you want a more stable target page or query, set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
+The live golden is intentionally sanitized before it is written to `testdata/golden/live/contract.json`, so repo snapshots never contain raw workspace content. If you want a more stable target page or query, set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_SPACE_KEY`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
 
 ## CI
 

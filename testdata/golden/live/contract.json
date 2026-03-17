@@ -141,5 +141,53 @@
       "hasExcerpt": true,
       "hasUrl": true
     }
+  },
+  "pagesSearchSpaceKey": {
+    "schema": {
+      "itemType": "page-search-result",
+      "fields": [
+        "excerpt",
+        "id",
+        "spaceId",
+        "title",
+        "url"
+      ]
+    },
+    "page": {
+      "limit": 1,
+      "hasNextCursor": true
+    },
+    "resultCount": 1,
+    "first": {
+      "hasId": true,
+      "hasTitle": true,
+      "hasSpaceId": false,
+      "hasExcerpt": true,
+      "hasUrl": true
+    }
+  },
+  "pagesSearchCql": {
+    "schema": {
+      "itemType": "page-search-result",
+      "fields": [
+        "excerpt",
+        "id",
+        "spaceId",
+        "title",
+        "url"
+      ]
+    },
+    "page": {
+      "limit": 1,
+      "hasNextCursor": true
+    },
+    "resultCount": 1,
+    "first": {
+      "hasId": true,
+      "hasTitle": true,
+      "hasSpaceId": false,
+      "hasExcerpt": true,
+      "hasUrl": true
+    }
   }
 }

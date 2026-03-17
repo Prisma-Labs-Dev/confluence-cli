@@ -267,6 +267,6 @@ Refresh the redacted live golden snapshot intentionally:
 zsh -lc 'CONFLUENCE_LIVE_E2E=1 CONFLUENCE_LIVE_E2E_UPDATE=1 go test -run LiveAPI ./...'
 ```
 
-The checked-in live golden stores only redacted contract summaries, not raw page content or titles. For more stable selection you can optionally set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
+The checked-in live golden stores only redacted contract summaries, not raw page content or titles. For more stable selection you can optionally set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_SPACE_KEY`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
 
 See `DEVELOPMENT.md` for local workflow, CI, release flow, and linting details.

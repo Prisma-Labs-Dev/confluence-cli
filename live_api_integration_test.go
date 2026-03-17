@@ -2,6 +2,7 @@ package confluence_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -87,7 +88,9 @@ type liveContractSnapshot struct {
 		Schema liveSchemaSnapshot `json:"schema"`
 		Item   liveTreeSnapshot   `json:"item"`
 	} `json:"pagesTree"`
-	PagesSearch liveListSnapshot[liveSearchFirstSnapshot] `json:"pagesSearch"`
+	PagesSearch         liveListSnapshot[liveSearchFirstSnapshot] `json:"pagesSearch"`
+	PagesSearchSpaceKey liveListSnapshot[liveSearchFirstSnapshot] `json:"pagesSearchSpaceKey"`
+	PagesSearchCQL      liveListSnapshot[liveSearchFirstSnapshot] `json:"pagesSearchCql"`
 }
 
 func TestLiveAPIContractGolden_Integration(t *testing.T) {
@@ -180,6 +183,7 @@ func collectLiveContractSnapshot(t *testing.T, binPath string) liveContractSnaps
 	if pageID == "" {
 		pageID = pages.Results[0].ID
 	}
+	spaceKey := resolveLiveSpaceKey(t, binPath, spaceID)
 
 	pageGetStdout, pageGetStderr, err := runBinary(binPath, []string{"pages", "get", "--page-id", pageID}, "")
 	if err != nil {
@@ -267,6 +271,55 @@ func collectLiveContractSnapshot(t *testing.T, binPath string) liveContractSnaps
 		t.Skip("live pages search returned no results for the selected query")
 	}
 
+	searchSpaceKeyStdout, searchSpaceKeyStderr, err := runBinary(binPath, []string{"pages", "search", "--query", query, "--space-key", spaceKey, "--limit", "1"}, "")
+	if err != nil {
+		t.Fatalf("live pages search with space-key failed: %v\nstdout=%s\nstderr=%s", err, searchSpaceKeyStdout, searchSpaceKeyStderr)
+	}
+
+	var searchSpaceKey struct {
+		Results []struct {
+			ID      string `json:"id"`
+			Title   string `json:"title"`
+			SpaceID string `json:"spaceId"`
+			Excerpt string `json:"excerpt"`
+			URL     string `json:"url"`
+		} `json:"results"`
+		Page struct {
+			Limit      int    `json:"limit"`
+			NextCursor string `json:"nextCursor"`
+		} `json:"page"`
+		Schema liveSchemaSnapshot `json:"schema"`
+	}
+	unmarshalLiveJSON(t, searchSpaceKeyStdout, &searchSpaceKey)
+	if len(searchSpaceKey.Results) == 0 {
+		t.Skip("live pages search with --space-key returned no results for the selected query")
+	}
+
+	searchCQL := fmt.Sprintf(`type = page AND space = "%s" AND title ~ "%s"`, spaceKey, query)
+	searchCQLStdout, searchCQLStderr, err := runBinary(binPath, []string{"pages", "search", "--cql", searchCQL, "--limit", "1"}, "")
+	if err != nil {
+		t.Fatalf("live pages search with cql failed: %v\nstdout=%s\nstderr=%s", err, searchCQLStdout, searchCQLStderr)
+	}
+
+	var searchCQLResult struct {
+		Results []struct {
+			ID      string `json:"id"`
+			Title   string `json:"title"`
+			SpaceID string `json:"spaceId"`
+			Excerpt string `json:"excerpt"`
+			URL     string `json:"url"`
+		} `json:"results"`
+		Page struct {
+			Limit      int    `json:"limit"`
+			NextCursor string `json:"nextCursor"`
+		} `json:"page"`
+		Schema liveSchemaSnapshot `json:"schema"`
+	}
+	unmarshalLiveJSON(t, searchCQLStdout, &searchCQLResult)
+	if len(searchCQLResult.Results) == 0 {
+		t.Skip("live pages search with --cql returned no results for the selected query")
+	}
+
 	snapshot := liveContractSnapshot{
 		SpacesList: liveListSnapshot[liveSpacesFirstSnapshot]{
 			Schema:      sanitizeSchema(spaces.Schema),
@@ -303,6 +356,30 @@ func collectLiveContractSnapshot(t *testing.T, binPath string) liveContractSnaps
 				HasSpaceID: search.Results[0].SpaceID != "",
 				HasExcerpt: search.Results[0].Excerpt != "",
 				HasURL:     search.Results[0].URL != "",
+			},
+		},
+		PagesSearchSpaceKey: liveListSnapshot[liveSearchFirstSnapshot]{
+			Schema:      sanitizeSchema(searchSpaceKey.Schema),
+			Page:        livePageSnapshot{Limit: searchSpaceKey.Page.Limit, HasNextCursor: searchSpaceKey.Page.NextCursor != ""},
+			ResultCount: len(searchSpaceKey.Results),
+			First: liveSearchFirstSnapshot{
+				HasID:      searchSpaceKey.Results[0].ID != "",
+				HasTitle:   searchSpaceKey.Results[0].Title != "",
+				HasSpaceID: searchSpaceKey.Results[0].SpaceID != "",
+				HasExcerpt: searchSpaceKey.Results[0].Excerpt != "",
+				HasURL:     searchSpaceKey.Results[0].URL != "",
+			},
+		},
+		PagesSearchCQL: liveListSnapshot[liveSearchFirstSnapshot]{
+			Schema:      sanitizeSchema(searchCQLResult.Schema),
+			Page:        livePageSnapshot{Limit: searchCQLResult.Page.Limit, HasNextCursor: searchCQLResult.Page.NextCursor != ""},
+			ResultCount: len(searchCQLResult.Results),
+			First: liveSearchFirstSnapshot{
+				HasID:      searchCQLResult.Results[0].ID != "",
+				HasTitle:   searchCQLResult.Results[0].Title != "",
+				HasSpaceID: searchCQLResult.Results[0].SpaceID != "",
+				HasExcerpt: searchCQLResult.Results[0].Excerpt != "",
+				HasURL:     searchCQLResult.Results[0].URL != "",
 			},
 		},
 	}
@@ -350,6 +427,49 @@ func unmarshalLiveJSON(t *testing.T, raw string, out any) {
 	if err := json.Unmarshal([]byte(raw), out); err != nil {
 		t.Fatalf("parse live JSON: %v\njson=%s", err, raw)
 	}
+}
+
+func resolveLiveSpaceKey(t *testing.T, binPath, targetSpaceID string) string {
+	t.Helper()
+
+	if key := strings.TrimSpace(os.Getenv("CONFLUENCE_LIVE_SPACE_KEY")); key != "" {
+		return key
+	}
+
+	cursor := ""
+	for {
+		args := []string{"spaces", "list", "--limit", "100"}
+		if cursor != "" {
+			args = append(args, "--cursor", cursor)
+		}
+		stdout, stderr, err := runBinary(binPath, args, "")
+		if err != nil {
+			t.Fatalf("live spaces list for space-key lookup failed: %v\nstdout=%s\nstderr=%s", err, stdout, stderr)
+		}
+
+		var spaces struct {
+			Results []struct {
+				ID  string `json:"id"`
+				Key string `json:"key"`
+			} `json:"results"`
+			Page struct {
+				NextCursor string `json:"nextCursor"`
+			} `json:"page"`
+		}
+		unmarshalLiveJSON(t, stdout, &spaces)
+		for _, space := range spaces.Results {
+			if space.ID == targetSpaceID && strings.TrimSpace(space.Key) != "" {
+				return strings.TrimSpace(space.Key)
+			}
+		}
+		if spaces.Page.NextCursor == "" {
+			break
+		}
+		cursor = spaces.Page.NextCursor
+	}
+
+	t.Skipf("could not resolve space key for live space id %s; set CONFLUENCE_LIVE_SPACE_KEY to force a specific key", targetSpaceID)
+	return ""
 }
 
 func firstSearchToken(title string) string {
