@@ -12,6 +12,9 @@ This document is the local workflow and CI/release reference for `confluence-cli
 ## Local workflow
 
 ```sh
+# safely format tracked Go files only
+make fmt
+
 # build local binary
 make build
 
@@ -20,6 +23,16 @@ make test
 
 # run lint + file-size guardrails
 make lint
+
+# install the repo build into ~/.local/bin and verify it
+make install-local
+make verify-local
+```
+
+Fast dogfood loop:
+
+```sh
+make dev-refresh
 ```
 
 ## Local install and update model
@@ -27,20 +40,20 @@ make lint
 This repository supports two different update stories:
 
 - **end-user update path:** Homebrew, GitHub Releases, or `go install ...@latest`
-- **developer local checkout path:** `git pull --ff-only` + `make build`
+- **developer local checkout path:** `git pull --ff-only` + `make install-local`
 
 If you are editing the repo itself, treat the checkout flow as a developer workflow, not as the primary end-user install/upgrade contract.
 
 Optional live golden validation against a real workspace:
 
 ```sh
-zsh -lc 'CONFLUENCE_LIVE_E2E=1 go test -run LiveAPI ./...'
+make test-live
 ```
 
 Refresh the redacted live golden snapshot on purpose:
 
 ```sh
-zsh -lc 'CONFLUENCE_LIVE_E2E=1 CONFLUENCE_LIVE_E2E_UPDATE=1 go test -run LiveAPI ./...'
+make test-live-update
 ```
 
 The live golden is intentionally sanitized before it is written to `testdata/golden/live/contract.json`, so repo snapshots never contain raw workspace content. If you want a more stable target page or query, set `CONFLUENCE_LIVE_SPACE_ID`, `CONFLUENCE_LIVE_SPACE_KEY`, `CONFLUENCE_LIVE_PAGE_ID`, and `CONFLUENCE_LIVE_SEARCH_QUERY`.
@@ -64,7 +77,7 @@ golangci-lint run ./...
 Linting is enforced in CI and locally.
 
 Current guardrails:
-- `gofmt`
+- `gofmt` via `make fmt` and `make fmt-check`
 - `govet`
 - `staticcheck`
 - `gosimple`
@@ -74,6 +87,8 @@ Current guardrails:
 - `misspell`
 - `unconvert`
 - Go file size limits via `scripts/check-file-length.sh`
+
+To avoid common shell paper cuts, prefer `make fmt` or `./scripts/fmt-go.sh` over raw `gofmt` when your file list may include Markdown or other non-Go files.
 
 Default file-size limits:
 - non-test Go files: `300` lines max

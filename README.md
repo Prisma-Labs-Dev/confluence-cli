@@ -81,7 +81,7 @@ which confluence
 confluence version
 ```
 
-If you want end users to receive updates cleanly, prefer Homebrew or GitHub Releases over local source checkouts. For active repo development, `make install-local` is the preferred way to keep the live binary aligned with the checkout.
+If you want end users to receive updates cleanly, prefer Homebrew or GitHub Releases over local source checkouts. For active repo development, `make install-local` is the preferred way to keep the live binary aligned with the checkout, and `make dev-refresh` is the quickest safe loop after code changes.
 
 ## Authentication
 
@@ -248,12 +248,21 @@ Search uses the current supported Confluence Cloud REST v1 search endpoint inter
 ## Development and validation
 
 ```sh
+make fmt
 make build
 make test
 make lint
 make install-local
 make verify-local
 ```
+
+Recommended developer loop for this repo:
+
+```sh
+make dev-refresh
+```
+
+That safely formats tracked Go files, runs tests, installs the current checkout into `~/.local/bin/confluence`, and verifies the local binary contract.
 
 Optional live golden validation against a real Confluence workspace:
 
